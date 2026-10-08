@@ -1,0 +1,19 @@
+# Built firmware and binary artifacts
+build/
+dist/
+*.bin
+*.rom
+*.iso
+*.cue
+*.img
+
+# Proprietary BIOS and disc images must never be committed
+*.mdf
+*.ccd
+*.sub
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
