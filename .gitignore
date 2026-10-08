@@ -1,5 +1,5 @@
 # Built firmware and binary artifacts
-build/
+/build/
 dist/
 *.bin
 *.rom

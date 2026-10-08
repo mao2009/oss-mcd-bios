@@ -1,0 +1,115 @@
+{
+  "schema_version": 2,
+  "description": "Structural invariants for the oss-mcd-bios boot ROM image. Offsets are image-relative; multi-byte values are big-endian. Only entries with enforceable=true may fail a build; others are advisory (report as warnings). Schema: docs/specifications/test-invariants.md.",
+  "sources_doc": "docs/specifications/README.md",
+  "invariants": [
+    {
+      "id": "INV-001",
+      "description": "Image size is exactly 128 KiB (the full Mode 2 boot ROM window $000000-$01FFFF).",
+      "status": "CONFIRMED",
+      "enforceable": true,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-01", "rom-layout.md#R-02", "S-HW 1-1 p.12", "S-HW 1-3 p.16", "E-GPGX core/cd_hw/scd.h:73", "E-PICO pico/pico_int.h:556"],
+      "check": { "type": "size_equals", "bytes": 131072 }
+    },
+    {
+      "id": "INV-002",
+      "description": "Initial PC (long at offset 0x004) is even.",
+      "status": "CONFIRMED",
+      "enforceable": true,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-10", "rom-layout.md#R-11", "S-M68K 6.2", "S-M68K 6.3.1", "S-M68K Table 6-2"],
+      "check": { "type": "u32_even", "offset": 4, "mask": 16777215 }
+    },
+    {
+      "id": "INV-003",
+      "description": "Initial PC (24-bit) points inside the ROM window, after the reset vector: 0x000008..0x01FFFE.",
+      "status": "CONFIRMED",
+      "enforceable": true,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-12", "S-M68K 6.3.1", "S-HW 1-3 p.16", "E-PICO pico/media.c:364-371"],
+      "check": { "type": "u32_range", "offset": 4, "mask": 16777215, "min": 8, "max": 131070 }
+    },
+    {
+      "id": "INV-004",
+      "description": "Initial SSP (long at offset 0x000) is even.",
+      "status": "CONFIRMED",
+      "enforceable": true,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-13", "S-M68K 6.2", "S-M68K 6.3.1"],
+      "check": { "type": "u32_even", "offset": 0, "mask": 16777215 }
+    },
+    {
+      "id": "INV-005",
+      "description": "Project rule: every exception vector 2..63 (offsets 0x008..0x0FC, step 4) is even, including unused ones, excluding the level-4 autovector at 0x070 whose content is partly overridden by the gate array. Rationale: taking an exception through an odd vector causes an address error (S-M68K 6.2), so we require all vectors to be valid; this is a quality rule, not a hardware fact.",
+      "status": "PROJECT-RULE",
+      "enforceable": true,
+      "scope": "project",
+      "source": ["rom-layout.md#R-14", "rom-layout.md#R-16", "S-M68K 6.2", "S-M68K Table 6-2"],
+      "check": { "type": "u32_even_each", "start": 8, "end": 252, "step": 4, "exclude": [112], "mask": 16777215 }
+    },
+    {
+      "id": "INV-006",
+      "description": "The 16 bytes at 0x120 do not match a Genesis Plus GX model-detection string, so the default (Model 1/2) CD hardware is emulated.",
+      "status": "CONFIRMED",
+      "enforceable": false,
+      "scope": "emulator:gpgx",
+      "source": ["rom-layout.md#R-22", "E-GPGX core/loadrom.c:422-442"],
+      "check": { "type": "bytes_not_in", "offset": 288, "length": 16, "ascii_values": ["WONDER-MEGA BOOT", "WONDERMEGA2 BOOT", "CDX BOOT ROM    "] }
+    },
+    {
+      "id": "INV-007",
+      "description": "Initial SSP (24-bit) is 0 or inside Main Work RAM ($FF0000-$FFFFFF).",
+      "status": "ESTIMATED",
+      "enforceable": false,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-13", "I-MEGADEV docs/megacd_dev.md:19-31"],
+      "check": { "type": "u32_in_ranges", "offset": 0, "mask": 16777215, "ranges": [[0, 0], [16711680, 16777215]] }
+    },
+    {
+      "id": "INV-008",
+      "description": "ASCII \"SEGA\" at 0x100 (some software detects the CD unit via $400100 in Mode 1).",
+      "status": "ESTIMATED",
+      "enforceable": false,
+      "scope": "software-compat",
+      "source": ["rom-layout.md#R-20", "E-PICO pico/cd/memory.c:1220-1223", "open-questions.md#OQ-5"],
+      "check": { "type": "bytes_equal", "offset": 256, "ascii": "SEGA" }
+    },
+    {
+      "id": "INV-009",
+      "description": "Header ROM-type field at 0x180 starts with \"BR\" so Genesis Plus GX recognises the image as a boot ROM when it is loaded as a cartridge.",
+      "status": "ESTIMATED",
+      "enforceable": false,
+      "scope": "emulator:gpgx",
+      "source": ["rom-layout.md#R-23", "E-GPGX core/loadrom.c:48,791-829"],
+      "check": { "type": "bytes_equal", "offset": 384, "ascii": "BR" }
+    },
+    {
+      "id": "INV-010",
+      "description": "ASCII \"BOOT\" at 0x124 or 0x128 so PicoDrive recognises the image as a boot ROM when it is loaded as a cartridge.",
+      "status": "ESTIMATED",
+      "enforceable": false,
+      "scope": "emulator:picodrive",
+      "source": ["rom-layout.md#R-23", "E-PICO pico/media.c:373-381"],
+      "check": { "type": "bytes_equal_any", "offsets": [292, 296], "ascii": "BOOT" }
+    },
+    {
+      "id": "INV-011",
+      "description": "High word of the level-4 autovector (0x070) is 0x00FF or 0xFFFF, so H-INT resolves to Work RAM regardless of emulator handling.",
+      "status": "UNCONFIRMED",
+      "enforceable": false,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-17", "open-questions.md#OQ-1"],
+      "check": { "type": "u16_in", "offset": 112, "values": [255, 65535] }
+    },
+    {
+      "id": "INV-012",
+      "description": "Exception vectors other than reset and level 4 point into the ROM window or Main Work RAM.",
+      "status": "ESTIMATED",
+      "enforceable": false,
+      "scope": "hardware",
+      "source": ["rom-layout.md#R-15", "I-MEGADEV lib/main/memmap.def.h:68-99"],
+      "check": { "type": "u32_each_in_ranges", "start": 8, "end": 252, "step": 4, "exclude": [112], "mask": 16777215, "ranges": [[0, 131071], [16711680, 16777215]] }
+    }
+  ]
+}

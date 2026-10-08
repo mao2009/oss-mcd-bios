@@ -26,7 +26,8 @@ commercial redistribution of the output.
 
 Use **GNU binutils 2.42, target `m68k-elf`**, built from the pinned source tarball
 (SHA-256 `f6e4d41fd5fc778b06b7891457b3620da5ecea1006c6a4a41ae998109f85a800`) by
-`tools/build/toolchain.sh`, invoked through a single `make` command.
+`tools/build/toolchain.sh` from the pin in `tools/build/toolchain.lock`, invoked through a single
+`make` command.
 
 Reasons: unambiguously free license with no output restriction, exact source pinning with a
 hash check, ELF + linker scripts for later multi-file layout, and a straightforward CI build.
@@ -36,8 +37,8 @@ Only the toolchain binary is used; no binutils code is copied into this reposito
 
 - Sources use GAS m68k syntax, not classic Motorola syntax. Contributors familiar with vasm/asm68k
   syntax must adapt.
-- First CI run builds binutils (minutes); later runs use the Actions cache keyed on the script hash.
-- Upgrading the toolchain is a single reviewed change of version + SHA-256 in `toolchain.sh`.
+- First CI run builds binutils (minutes); later runs use the Actions cache keyed on the script and lock-file hashes.
+- Upgrading the toolchain is a single reviewed change of version, URL and SHA-256 in `toolchain.lock`.
 - vasm may be reconsidered if its author grants clear permission compatible with redistributing
   the ROM commercially; switching would require rewriting syntax-dependent sources.
 - Not decided here: ROM layout, size, header and mapping (Issue #1). Those values remain

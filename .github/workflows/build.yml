@@ -18,7 +18,7 @@ jobs:
         uses: actions/cache@v4
         with:
           path: build/toolchain
-          key: binutils-m68k-elf-${{ runner.os }}-${{ hashFiles('tools/build/toolchain.sh') }}
+          key: binutils-m68k-elf-${{ runner.os }}-${{ hashFiles('tools/build/toolchain.sh', 'tools/build/toolchain.lock') }}
 
       - name: Validator unit tests
         run: make test

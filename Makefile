@@ -5,7 +5,7 @@
 # Requires: bash, curl, xz, tar, sha256sum, a host C compiler, make, python3.
 
 TC     ?= build/toolchain
-CROSS   = $(TC)/bin/m68k-elf-
+CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\r')-
 PYTHON ?= python3
 ROM     = build/oss-mcd-bios.bin
 
@@ -17,6 +17,7 @@ all: validate
 # Phony + order-only: the script itself is a no-op when the pinned version is installed.
 toolchain:
 	bash tools/build/toolchain.sh $(TC)
+
 
 build/boot.o: src/boot/boot.s | toolchain
 	@mkdir -p build
