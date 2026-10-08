@@ -279,6 +279,9 @@ class EndToEnd(unittest.TestCase):
             ok.write_text(json.dumps(rec()), encoding="utf-8")
             self.assertEqual(run_cli("validate", tmp).returncode, 0)
             self.assertEqual(run_cli("validate", tmp, Path(tmp) / "nope").returncode, 1)
+            self.assertEqual(run_cli("validate", "--emulator-prefix", "hardware:", tmp).returncode, 1)
+            ok.write_text(json.dumps(rec(emulator_id="hardware:mega-cd-model1", emulator_sha=None)), encoding="utf-8")
+            self.assertEqual(run_cli("validate", "--emulator-prefix", "hardware:", tmp).returncode, 0)
 
     def test_repository_doc_is_in_sync(self):
         self.assertEqual(run_cli("matrix", "--doc", ROOT / "docs" / "compatibility.md", "--check").returncode, 0)

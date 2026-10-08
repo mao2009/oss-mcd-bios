@@ -1,9 +1,27 @@
 name: Compatibility evidence
 
+# Tiers (vn-wine-style gates; see docs/compatibility.md):
+#   tier1        every PR/push: host tooling tests, doctor, record validation, matrix sync. No emulator.
+#   emulator     pinned Genesis Plus GX smoke test. Runs only when tools/emu/gpgx.lock exists,
+#                otherwise records an explicit SKIP evidence record (never a pass).
+#   differential independent-emulator cross-check. Explicit SKIP until a second emulator is pinned.
+#   hardware     manual only (workflow_dispatch + self-hosted runner labelled mcd-hardware); optional.
+# The report job aggregates every tier's records: SKIP/BLOCKED are never counted as success.
+
 on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+    inputs:
+      hardware:
+        description: "Run the optional real-hardware tier (needs a self-hosted runner labelled mcd-hardware)"
+        type: boolean
+        default: false
+      hardware_records:
+        description: "Directory on the hardware runner holding evidence records from tools/evidence/evidence.py collect"
+        type: string
+        default: hardware-records
 
 permissions:
   contents: read
@@ -19,8 +37,107 @@ jobs:
           python-version: "3.12"
       - name: Host tooling tests (synthetic fixture, golden, differential, E2E)
         run: python -I -B -m unittest discover -s tests/host -v
+      - name: Environment doctor (FAIL on broken pins or wrong installed versions; absent tools are SKIP)
+        shell: bash
+        run: python -I tools/doctor/doctor.py | tee -a "$GITHUB_STEP_SUMMARY"
       - name: Validate committed evidence records
         run: |
           if [ -d tools/evidence/records ]; then python -I tools/evidence/evidence.py validate tools/evidence/records; else echo "No committed evidence records."; fi
       - name: Compatibility matrix in docs/compatibility.md is up to date
         run: python -I tools/evidence/evidence.py matrix --doc docs/compatibility.md --check
+
+  emulator:
+    name: "Tier 2: pinned Genesis Plus GX smoke"
+    needs: tier1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run or explicitly SKIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f tools/emu/gpgx.lock ]; then
+            status=SKIP; reason="tools/emu/gpgx.lock absent: no pinned Genesis Plus GX (issue #5)"
+          else
+            # ponytail: wire the #5 smoke harness here once it exists; until then never claim a pass.
+            status=BLOCKED; reason="gpgx pinned but smoke harness not yet wired into compat.yml (issue #5)"
+          fi
+          python -I tools/evidence/evidence.py collect --status "$status" --checkpoint bios-loaded \
+            --emulator-id gpgx --reason "$reason" --env "tier=emulator" --out records/emulator-gpgx.json
+          echo "$status emulator/gpgx: $reason" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-emulator
+          path: records/
+
+  differential:
+    name: "Tier 3: independent-emulator differential"
+    needs: tier1
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run or explicitly SKIP
+        shell: bash
+        run: |
+          set -euo pipefail
+          secondary=$(find tools/emu -maxdepth 1 -name '*.lock' ! -name gpgx.lock 2>/dev/null | sort | head -n1 || true)
+          if [ ! -f tools/emu/gpgx.lock ] || [ -z "$secondary" ]; then
+            status=SKIP; emu=picodrive
+            reason="differential needs tools/emu/gpgx.lock and a second pinned emulator (tools/emu/<id>.lock)"
+          else
+            emu=$(basename "$secondary" .lock)
+            status=BLOCKED; reason="differential harness for gpgx vs $emu not implemented yet"
+          fi
+          python -I tools/evidence/evidence.py collect --status "$status" --checkpoint startup \
+            --emulator-id "$emu" --reason "$reason" --env "tier=differential" --out records/differential.json
+          echo "$status differential/$emu: $reason" | tee -a "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-differential
+          path: records/
+
+  hardware:
+    name: "Tier 4: real hardware (optional, manual)"
+    if: github.event_name == 'workflow_dispatch' && inputs.hardware
+    runs-on: [self-hosted, mcd-hardware]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate operator-supplied hardware records (emulator.id must be hardware:<model>)
+        env:
+          RECORDS: ${{ inputs.hardware_records }}
+        run: |
+          python3 -I -B tools/evidence/evidence.py validate --emulator-prefix hardware: "$RECORDS"
+          mkdir -p records && cp "$RECORDS"/*.json records/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: evidence-hardware
+          path: records/
+
+  report:
+    name: Aggregate evidence (SKIP/BLOCKED are not success)
+    needs: [tier1, emulator, differential, hardware]
+    if: always() && needs.tier1.result == 'success'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: evidence-*
+          path: records
+          merge-multiple: true
+        continue-on-error: true  # a tier without records shows as UNTESTED, never PASS
+      - name: Aggregate and publish matrix
+        shell: bash
+        run: |
+          mkdir -p records
+          python -I tools/evidence/evidence.py matrix records tools/evidence/records | tee -a "$GITHUB_STEP_SUMMARY"
+          python -I tools/evidence/evidence.py aggregate records tools/evidence/records --fail-on-fail > summary.json

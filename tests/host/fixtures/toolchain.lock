@@ -1,0 +1,7 @@
+# Synthetic toolchain pin in the agreed shared key=value format (mirrors tools/build/toolchain.sh values).
+name=binutils-m68k-elf
+version=2.42
+sha256=f6e4d41fd5fc778b06b7891457b3620da5ecea1006c6a4a41ae998109f85a800
+url=https://ftp.gnu.org/gnu/binutils/binutils-2.42.tar.xz
+command=m68k-elf-as
+version_cmd=m68k-elf-as --version
