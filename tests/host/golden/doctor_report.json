@@ -1,0 +1,14 @@
+[
+  {
+    "group": "build",
+    "name": "binutils-m68k-elf",
+    "status": "SKIP",
+    "reason": "m68k-elf-as not installed (pinned version 2.42); optional, use --require build"
+  },
+  {
+    "group": "emu",
+    "name": "gpgx",
+    "status": "SKIP",
+    "reason": "pin (commit 87dd8b80802f) has no command key; installed version not checkable here"
+  }
+]

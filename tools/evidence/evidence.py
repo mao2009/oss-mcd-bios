@@ -299,6 +299,8 @@ def _cmd_validate(a):
     bad = len(missing)
     for label, rec in records:
         errors = validate(rec) if rec is not None else ["unreadable JSON"]
+        if not errors and a.emulator_prefix and not rec["emulator"]["id"].startswith(a.emulator_prefix):
+            errors = [f"emulator.id must start with {a.emulator_prefix!r}"]
         print(f"{'OK ' if not errors else 'BAD'} {label}" + "".join(f"\n    {e}" for e in errors))
         bad += bool(errors)
     return 1 if bad else 0
@@ -350,6 +352,7 @@ def main(argv=None) -> int:
     c.add_argument("--out")
     v = sub.add_parser("validate", help="validate record files/directories")
     v.add_argument("paths", nargs="+")
+    v.add_argument("--emulator-prefix", help="also require emulator.id to start with this (e.g. hardware:)")
     g = sub.add_parser("aggregate", help="print the JSON summary")
     g.add_argument("paths", nargs="+")
     g.add_argument("--fail-on-fail", action="store_true")
