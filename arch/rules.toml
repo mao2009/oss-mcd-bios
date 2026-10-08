@@ -1,0 +1,61 @@
+# Source architecture rules for oss-mcd-bios.
+#
+# Checked by tools/arch/arch_check.py; documented in docs/architecture-rules.md.
+# Dependencies are default-deny: an edge is allowed only if listed under
+# [allow] (a layer may always depend on itself). Changing these rules needs
+# review; NEVER add an edge just to make a failing check pass.
+#
+# Pattern syntax: Python fnmatch on repo-relative POSIX paths (`*` also
+# matches `/`).
+
+version = 1
+
+[layers]
+boot = ["src/boot/*"]          # reset vectors and startup assembly
+hw = ["src/hw/*"]              # memory-mapped peripheral access
+services = ["src/services/*"]  # disc and BIOS-facing services
+harness = ["tests/*"]          # synthetic test programs and emulator harnesses
+
+[allow]
+# Working design (docs/architecture.md), not a verified hardware model.
+boot = ["hw", "services"]
+hw = []
+services = ["hw"]
+harness = ["boot", "hw", "services"]
+
+[rom]
+# Layers whose files are ROM build inputs. They may only depend on files in
+# allowed layers (never on unlayered paths such as tools/ or docs/) and must
+# not reference emulator-specific names.
+layers = ["boot", "hw", "services"]
+# Tracked files under these paths must belong to some layer.
+unassigned_deny = ["src/*"]
+# Case-insensitive regular expressions searched in every ROM-layer file,
+# comments included. Short names use letter-only boundaries so identifiers
+# such as IS_BLASTEM and -DGPGX are caught while longer words such as "kegan" are not.
+forbidden_patterns = [
+  'genesis[\s_.-]*plus',
+  '(?:(?<![a-z])|(?<=-d))gpgx(?![a-z])',
+  'clownmdemu',
+  '(?:(?<![a-z])|(?<=-d))blastem(?![a-z])',
+  '(?:(?<![a-z])|(?<=-d))kega(?![a-z])',
+  'picodrive',
+  '(?:(?<![a-z])|(?<=-d))mame(?![a-z])',
+  'libretro',
+  'retroarch',
+]
+
+[rom_build]
+# ROM build entry points. The dependency closure of `targets` (prerequisites,
+# pattern rules, recipe path tokens, linker-script INPUT/GROUP/INCLUDE) may
+# only reach tracked files in ROM layers or in `tools`, and must not name an
+# emulator. A listed makefile that is not tracked yet is skipped.
+makefiles = ["Makefile"]
+targets = ["build/oss-mcd-bios.bin"]
+tools = ["tools/build/*", "tools/rom/*"]
+
+[scan]
+# Basename patterns. Assembly files are scanned for include/incbin
+# directives; build scripts for path references.
+assembly = ["*.s", "*.S", "*.asm", "*.inc", "*.i"]
+build_scripts = ["Makefile", "*.mk", "*.ld", "*.lds", "*.cmake", "CMakeLists.txt"]
