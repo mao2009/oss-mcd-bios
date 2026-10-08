@@ -6,15 +6,19 @@ The automated gate (`tools/policy/policy_check.py`, policy in `policy/allowlist.
 
 Run locally with `python -I -B tools/policy/policy_check.py` (Python 3.11+, stdlib only; use `-B` so `__pycache__` is not written under `tools/`).
 
-- Tracked files are listed with `git ls-files`. Every tracked file must match a location in the policy (`source`, `fixture`, `tool`, `docs`, `meta`); anything else is rejected (default deny).
+- Tracked files are listed with `git ls-files`. Every tracked file must match a location in the policy (`source`, `fixture`, `tool`, `build`, `docs`, `meta`); anything else is rejected (default deny).
 - Files under `artifact` locations (`build/`, `dist/`) must never be tracked.
 - Symlinks and submodules are rejected.
 - Denied extensions (ROM, disc image and archive formats such as `.bin`, `.rom`, `.gen`, `.smd`, `.iso`, `.cue`, `.chd`, `.zip`) are rejected anywhere, case-insensitively.
 - Every tracked file must be UTF-8 text without NUL bytes and at most `max_file_bytes`. Binary files are rejected and reported as ROM-like when a Mega Drive (`SEGA` at 0x100) or Mega-CD (`SEGADISCSYSTEM`) header is found. `.md` is not a denied extension because it is also Markdown; `.md` files must pass this text check like every other file.
-- Untracked files, including git-ignored ones, and uncommitted modifications under build-input locations (`src/`, `tests/`, `tools/`) are rejected, as are uncommitted edits to the policy file itself.
+- Untracked files, including git-ignored ones, and uncommitted modifications under build-input locations (`src/`, `tests/`, `tools/`, top-level `Makefile`) are rejected, as are uncommitted edits to the policy file itself.
 - The policy file must be a tracked file in the repository.
 
 Exit code `0` means no violation was detected, `1` means violations were found, and `2` means the policy or git state could not be read or validated. CI treats every non-zero exit as failure (fail closed).
+
+## Not yet a merge gate
+
+On its own, a failing `Policy gate` workflow only marks the pull request red. It **cannot block a merge** until a maintainer enables branch protection on `main` and adds the `policy` job as a required status check. Code Owner review is enforced only through the same setting. Contributors and automation cannot change it. Until a maintainer enables it, reviewers must check the workflow result and the Code Owner approval by hand before merging.
 
 ## If the gate fails
 
@@ -22,7 +26,7 @@ Report the violation in the pull request and remove or replace the offending inp
 
 ## Changing the policy
 
-`.github/CODEOWNERS` assigns `policy/`, `tools/policy/`, the policy workflow, `CODEOWNERS` and this document to the maintainer. This is enforced only when branch protection on `main` requires Code Owner review; maintainers should keep that setting enabled.
+`.github/CODEOWNERS` assigns `policy/`, `tools/policy/`, all workflows under `.github/workflows/`, `arch/rules.toml`, `CODEOWNERS` and this document to the maintainer. This is enforced only when branch protection on `main` requires Code Owner review (see above).
 
 A pull request that changes the policy must explain:
 

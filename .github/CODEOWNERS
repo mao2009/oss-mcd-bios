@@ -1,8 +1,10 @@
-# Changes to the build-input / provenance policy require maintainer review.
-# See docs/policy-review.md. Enforcement requires branch protection with
-# "Require review from Code Owners" enabled on main.
+# Changes to the build-input / provenance policy, architecture rules and CI
+# gates require maintainer review. See docs/policy-review.md. Enforcement
+# requires branch protection with "Require review from Code Owners" enabled
+# on main (a maintainer-only repository setting).
 /policy/                     @mao2009
 /tools/policy/               @mao2009
-/.github/workflows/policy.yml @mao2009
+/.github/workflows/          @mao2009
 /.github/CODEOWNERS          @mao2009
+/arch/rules.toml             @mao2009
 /docs/policy-review.md       @mao2009
