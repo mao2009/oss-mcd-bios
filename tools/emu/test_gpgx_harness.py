@@ -77,9 +77,10 @@ class Harness(unittest.TestCase):
     def test_fail_when_checkpoint_differs(self):
         self.assertEqual(self.run_h(fake_host(final=b"NOPE"))[0]["status"], "FAIL")
 
-    def test_no_expect_is_only_bios_loaded(self):
+    def test_no_expect_never_pass(self):
         rec, rh = self.run_h(expects=())
-        self.assertEqual((rec["status"], rec["checkpoint"]), ("PASS", "bios-loaded"))
+        self.assertNotEqual(rec["status"], "PASS")
+        self.assertEqual((rec["status"], rec["checkpoint"]), ("BLOCKED", "bios-loaded"))
         rh.assert_called_once()
 
     def test_system_mode_needs_no_header(self):

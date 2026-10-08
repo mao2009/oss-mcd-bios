@@ -8,7 +8,7 @@
 `run` emits one evidence record (tools/evidence/result.schema.json, schema_version 1).
 status: PASS | FAIL | SKIP (emulator not built) | BLOCKED (cannot judge).
 checkpoint: 'startup' when --expect is given (PASS only if every assertion holds AND differs from
-the power-on state), else 'bios-loaded' (PASS = core accepted and mapped the ROM in Mega-CD mode).
+the power-on state), else 'bios-loaded' (never PASS: loading is not boot success -> BLOCKED).
 Exit code: PASS 0, FAIL 1, SKIP 3, BLOCKED 4.
 
 The emulator lives outside the repository: $GPGX_CACHE_DIR, default <user cache dir>/oss-mcd-bios/gpgx.
@@ -237,8 +237,8 @@ def run(rom, gpgx_dir=None, frames=120, expects=(), region="auto", timeout=120, 
                         "ok": got == want and len(init) == len(want) and init != want})
     observed["checks"] = results
     if not checks:
-        return done("PASS", f"core accepted and mapped the BIOS in Mega-CD mode ({mode} mode) and ran "
-                            f"{frames} frames; no checkpoint asserted, so this says nothing about startup")
+        return done("BLOCKED", f"core loaded the BIOS in Mega-CD mode ({mode} mode) and ran {frames} frames, "
+                               "but no --expect checkpoint was given; loading is not boot success")
     failed = [c for c in results if not c["ok"]]
     if failed:
         same = [c for c in failed if c["power_on"] == c["expected"]]
