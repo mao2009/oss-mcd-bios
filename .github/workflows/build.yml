@@ -1,0 +1,37 @@
+name: ROM build
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    # Structural build check only. A green run does NOT mean the ROM boots anywhere.
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Cache pinned toolchain
+        uses: actions/cache@v4
+        with:
+          path: build/toolchain
+          key: binutils-m68k-elf-${{ runner.os }}-${{ hashFiles('tools/build/toolchain.sh', 'tools/build/toolchain.lock') }}
+
+      - name: Validator unit tests
+        run: make test
+
+      - name: Build and validate ROM
+        run: make
+
+      - name: Rebuild from clean and compare hash (determinism)
+        shell: bash
+        run: |
+          set -euo pipefail
+          cp build/oss-mcd-bios.bin.sha256 /tmp/first.sha256
+          make clean
+          make
+          diff /tmp/first.sha256 build/oss-mcd-bios.bin.sha256
+          cat build/oss-mcd-bios.bin.sha256 >> "$GITHUB_STEP_SUMMARY"
