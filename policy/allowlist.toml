@@ -17,16 +17,19 @@ source = ["src/*"]
 fixture = ["tests/*"]
 # Reproducible host-side build and validation scripts.
 tool = ["tools/*"]
+# Top-level build entry point (introduced by PR #11).
+build = ["Makefile"]
 # Build outputs. These must be produced by the build, never tracked.
 artifact = ["build/*", "dist/*"]
 # Documentation and repository metadata.
 docs = ["README.md", "LICENSE", "CONTRIBUTING.md", "docs/*"]
-meta = [".gitignore", ".gitattributes", ".github/*", "policy/*"]
+# arch/rules.toml: architecture rules (introduced by PR #12).
+meta = [".gitignore", ".gitattributes", ".github/*", "policy/*", "arch/rules.toml"]
 
 [inputs]
 # Locations treated as build inputs: untracked (including git-ignored) or
 # uncommitted files under these locations are rejected.
-categories = ["source", "fixture", "tool"]
+categories = ["source", "fixture", "tool", "build"]
 
 [content]
 # Rejected wherever they appear (compared case-insensitively).

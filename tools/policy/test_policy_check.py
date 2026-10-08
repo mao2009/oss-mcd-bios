@@ -61,6 +61,26 @@ class PolicyCheckTest(unittest.TestCase):
         self.commit()
         self.assertEqual(self.run_check(), 0)
 
+    def test_other_open_pr_paths_pass(self):
+        for rel in ("Makefile", "arch/rules.toml", "tools/build/rom.ld", "tests/host/golden/x.json",
+                    "docs/specifications/rom-layout.md", ".github/workflows/build.yml"):
+            self.write(rel, b"text\n")
+        self.commit()
+        self.assertEqual(self.violations(), [])
+
+    def test_allowlist_stays_narrow(self):
+        for rel in ("arch/other.toml", "makefile.bin", "sub/Makefile", "GNUmakefile"):
+            with self.subTest(rel=rel):
+                self.write(rel, b"text\n")
+                self.commit()
+                self.assertTrue(any(rel in x for x in self.violations()))
+                (self.root / rel).unlink()
+                self.commit()
+
+    def test_untracked_makefile_is_build_input(self):
+        self.write("Makefile", b"all:\n")
+        self.assertTrue(any("Makefile: untracked" in x for x in self.violations()))
+
     # negative
     def test_default_deny_unknown_location(self):
         self.add_and_expect("random/file.txt", b"hi\n", "default deny")
