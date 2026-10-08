@@ -1,0 +1,7 @@
+{
+  "_note": "ROM layout values below are UNVERIFIED placeholders until the ROM-layout specification (Issue #1, docs/specifications/) confirms them. They drive padding only; the validator enforces size == rom_size because the build produced it, not because the hardware requires it.",
+  "rom_size": 131072,
+  "rom_size_status": "UNVERIFIED (128 KiB is a hypothesis per docs/architecture.md)",
+  "fill_byte": 255,
+  "fill_byte_status": "UNVERIFIED (arbitrary choice for unused space)"
+}
