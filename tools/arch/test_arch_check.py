@@ -205,6 +205,24 @@ class RomBuildTest(ArchCheckTest):
         self.patch("build/boot.o tools/build/rom.ld", "build/boot.o $(wildcard tests/*.o)")
         self.expect("cannot analyze")
 
+    def test_pinned_compiler_target_shell_is_resolved_without_execution(self):
+        # The actual ROM Makefile reads the compiler prefix from a tracked lock
+        # file. Static analysis must accept only that exact documented expression.
+        self.write("tools/build/toolchain.lock", "target=m68k-elf\\n")
+        self.patch("CROSS   = $(TC)/bin/m68k-elf-",
+                   "CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\\\r')-")
+        self.assertEqual(self.violations(), [])
+
+    def test_invalid_pinned_compiler_target_fails_closed(self):
+        self.write("tools/build/toolchain.lock", "target=m68k-elf\\ntarget=evil\\n")
+        self.patch("CROSS   = $(TC)/bin/m68k-elf-",
+                   "CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\\\r')-")
+        self.expect("expected one valid pinned compiler target")
+
+    def test_other_shell_make_function_remains_forbidden(self):
+        self.patch("CROSS   = $(TC)/bin/m68k-elf-", "CROSS   = $(TC)/bin/$(shell echo m68k-elf)-")
+        self.expect("cannot analyze")
+
     def test_makefile_include_fails_closed(self):
         self.write("Makefile", "include extra.mk\n" + MAKEFILE)
         self.expect("include directives are not analyzed")
