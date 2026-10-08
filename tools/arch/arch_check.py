@@ -179,8 +179,8 @@ def check_rom_build(root, rules, files, known, dirs):
         if path not in files or not matches(path, tools):
             violations.append(f"{path}: compiler target expression requires an approved tracked lock file")
             return text
-        targets = re.findall(r"^target=([a-z][a-z0-9-]*)\\r?$", text_of(path), flags=re.MULTILINE)
-        if len(targets) != 1:
+        targets = [line.removeprefix("target=") for line in text_of(path).splitlines() if line.startswith("target=")]
+        if len(targets) != 1 or not re.fullmatch(r"[a-z][a-z0-9-]*", targets[0]):
             violations.append(f"{path}: expected one valid pinned compiler target")
             return text
         return text.replace(locked_target_expr, targets[0])
