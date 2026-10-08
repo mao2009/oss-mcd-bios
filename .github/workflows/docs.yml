@@ -1,0 +1,24 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check documentation references and required files
+        shell: bash
+        run: |
+          set -euo pipefail
+          for file in README.md LICENSE CONTRIBUTING.md docs/architecture.md docs/provenance.md docs/compatibility.md docs/roadmap.md; do
+            test -s "$file" || { echo "Missing or empty: $file"; exit 1; }
+          done
+          grep -q 'Status: planning / bootstrap' README.md
+          grep -q 'No functional BIOS implementation' README.md
+          echo 'Repository documentation checks passed (no ROM build/test).'
