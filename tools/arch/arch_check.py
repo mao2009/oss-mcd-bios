@@ -166,6 +166,25 @@ def check_rom_build(root, rules, files, known, dirs):
             if m:
                 violations.append(f"{where}: emulator-specific reference {m.group(0)!r} in ROM build input")
 
+    # The repository's pinned toolchain Makefile derives the executable prefix
+    # with this one literal $(shell) expression. Never execute shell commands
+    # during a static analysis. Resolve only this exact syntax by reading the
+    # tracked, approved lock file; arbitrary make functions stay fail-closed.
+    locked_target_expr = "$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\r')"
+
+    def expand_locked_target(text):
+        if locked_target_expr not in text:
+            return text
+        path = "tools/build/toolchain.lock"
+        if path not in files or not matches(path, tools):
+            violations.append(f"{path}: compiler target expression requires an approved tracked lock file")
+            return text
+        targets = re.findall(r"^target=([a-z][a-z0-9-]*)\\r?$", text_of(path), flags=re.MULTILINE)
+        if len(targets) != 1:
+            violations.append(f"{path}: expected one valid pinned compiler target")
+            return text
+        return text.replace(locked_target_expr, targets[0])
+
     for mf in rules["rom_makefiles"]:
         if mf not in files:
             continue  # no build entry point yet
@@ -223,11 +242,11 @@ def check_rom_build(root, rules, files, known, dirs):
             for pre, recipe, line in entries:
                 queue.extend(pre)
                 raw = "\n".join([line, *recipe])
-                body = make_expand(raw, variables)
+                body = expand_locked_target(make_expand(raw, variables))
                 forbidden(f"{mf}: rule {line.strip()!r}", raw + "\n" + body)
                 if "$(" in body or "${" in body:
                     violations.append(f"{mf}: rule {line.strip()!r} uses make functions the checker cannot analyze")
-                for tok in path_tokens(make_expand("\n".join(recipe), variables)):
+                for tok in path_tokens(expand_locked_target(make_expand("\n".join(recipe), variables))):
                     p = posixpath.normpath(posixpath.join(mdir, tok))
                     if p in files or p in dirs:
                         classify(f"{mf}: recipe of {line.strip()!r}", p, p in dirs)
