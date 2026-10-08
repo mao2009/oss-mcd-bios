@@ -34,8 +34,10 @@ The official BIOS manual says that applications call the BIOS through a jump tab
 | ID | Claim | Status | Evidence |
 | --- | --- | --- | --- |
 | A-10 | The Main-side exception/interrupt jump table at `$FFFD00` (6-byte `JMP` entries, e.g. V-INT pointer at `$FFFD08`) is a compatibility surface that software patches. | **ESTIMATED** | I-MEGADEV `lib/main/memmap.def.h:19,68-99`, `docs/megacd_dev.md:7-31` |
-| A-11 | Some commercial titles call a fixed jump table at ROM `$000280` (an undocumented Main-side "boot ROM library"). Supporting those titles requires the same table position and calling semantics. | **ESTIMATED** | I-MEGADEV `docs/main_bios.md:30-44`. OQ-7 (clean-room method) |
-| A-12 | Main-side BIOS work variables in `$FFFDB4-~$FFFE58` (VDP register cache, communication-register caches, etc.) are used by that library. Their layout varies by revision. | **ESTIMATED** | I-MEGADEV `docs/megacd_dev.md:23`, `lib/main/bios.def.h:44-146` |
+| A-11 | Some commercial titles may call a fixed jump table at ROM `$000280` (an undocumented Main-side "boot ROM library"). | **UNCONFIRMED** | I-MEGADEV `docs/main_bios.md:30-44` only. See the note below. OQ-7 |
+| A-12 | Main-side BIOS work variables may occupy `$FFFDB4-~$FFFE58` (VDP register cache, communication-register caches, etc.). | **UNCONFIRMED** | I-MEGADEV `docs/megacd_dev.md:23`, `lib/main/bios.def.h:44-146` only. See the note below. OQ-7 |
+
+> **A-11 and A-12 must not be implemented from these sources.** MegaDev itself says the Main-side library is "only understood from reverse engineering" (`docs/main_bios.md:12`). We do not know how that knowledge was obtained, for example whether it came from disassembling Sega ROMs. That conflicts with this project's rule against disassembly-derived tables (§4 below, [provenance rule 1](../provenance.md)). These rows only record that the claim exists. No entry list, ordering, address or work-RAM layout may be taken from MegaDev until a maintainer decides the clean-room question in OQ-7.
 
 ## 4. What we deliberately do not provide
 

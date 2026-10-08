@@ -1,6 +1,6 @@
 {
-  "schema_version": 1,
-  "description": "Structural invariants for the oss-mcd-bios boot ROM image. Offsets are image-relative; multi-byte values are big-endian. Only entries with enforceable=true may fail a build; others are advisory (report as warnings). See docs/specifications/test-invariants.md for the check vocabulary.",
+  "schema_version": 2,
+  "description": "Structural invariants for the oss-mcd-bios boot ROM image. Offsets are image-relative; multi-byte values are big-endian. Only entries with enforceable=true may fail a build; others are advisory (report as warnings). Schema: docs/specifications/test-invariants.md.",
   "sources_doc": "docs/specifications/README.md",
   "invariants": [
     {
@@ -41,10 +41,10 @@
     },
     {
       "id": "INV-005",
-      "description": "Exception vectors 2..63 (offsets 0x008..0x0FC, step 4) are even, excluding the level-4 autovector at 0x070 whose content is partly overridden by the gate array.",
-      "status": "CONFIRMED",
+      "description": "Project rule: every exception vector 2..63 (offsets 0x008..0x0FC, step 4) is even, including unused ones, excluding the level-4 autovector at 0x070 whose content is partly overridden by the gate array. Rationale: taking an exception through an odd vector causes an address error (S-M68K 6.2), so we require all vectors to be valid; this is a quality rule, not a hardware fact.",
+      "status": "PROJECT-RULE",
       "enforceable": true,
-      "scope": "hardware",
+      "scope": "project",
       "source": ["rom-layout.md#R-14", "rom-layout.md#R-16", "S-M68K 6.2", "S-M68K Table 6-2"],
       "check": { "type": "u32_even_each", "start": 8, "end": 252, "step": 4, "exclude": [112], "mask": 16777215 }
     },
@@ -52,7 +52,7 @@
       "id": "INV-006",
       "description": "The 16 bytes at 0x120 do not match a Genesis Plus GX model-detection string, so the default (Model 1/2) CD hardware is emulated.",
       "status": "CONFIRMED",
-      "enforceable": true,
+      "enforceable": false,
       "scope": "emulator:gpgx",
       "source": ["rom-layout.md#R-22", "E-GPGX core/loadrom.c:422-442"],
       "check": { "type": "bytes_not_in", "offset": 288, "length": 16, "ascii_values": ["WONDER-MEGA BOOT", "WONDERMEGA2 BOOT", "CDX BOOT ROM    "] }
