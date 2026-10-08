@@ -8,7 +8,8 @@ An open-source replacement BIOS project for the **Sega Mega-CD / Sega CD**.
 
 - Produce a redistributable BIOS ROM using original, independently developed code and assets.
 - Prioritize **emulator compatibility**, while preserving the ability to run on real hardware.
-- Target booting homebrew CD software first, then progressively improve commercial-game compatibility.
+- **Ultimate product goal:** run commercial Mega-CD/Sega CD games without proprietary BIOS files; Japanese releases are the required initial target, with US/EU and multi-region compatibility as long-term goals.
+- Booting homebrew CD software is an intermediate diagnostic milestone, not a completed product.
 - Support regional Mega-CD / Sega CD variants when verified.
 - Avoid emulator-specific hooks in the ROM itself. Emulator harnesses may be used for tests.
 
@@ -26,7 +27,7 @@ An open-source replacement BIOS project for the **Sega Mega-CD / Sega CD**.
 4. Add disc detection, sector access and a minimal homebrew boot path.
 5. Extend BIOS-facing service compatibility and test against multiple emulators and, later, hardware.
 
-See [architecture](docs/architecture.md), [compatibility testing](docs/compatibility.md), [legal and provenance policy](docs/provenance.md) and [roadmap](docs/roadmap.md).
+See [architecture](docs/architecture.md), [compatibility testing](docs/compatibility.md), [legal and provenance policy](docs/provenance.md) [roadmap](docs/roadmap.md), and the [commercial-compatibility research handbook](docs/compat-research/README.md).
 
 ## Build
 
