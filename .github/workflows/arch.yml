@@ -1,0 +1,22 @@
+name: Architecture rules
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  arch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Any non-zero exit (violation or unreadable rules) fails the job.
+      - name: Source architecture rules check
+        run: python -I -B tools/arch/arch_check.py
+      - name: Architecture tool unit tests
+        run: python -I -B -m unittest discover -s tools/arch -v
