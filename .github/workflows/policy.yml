@@ -1,0 +1,23 @@
+name: Policy gate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  policy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # Gate runs first, on the pristine checkout, so test byproducts cannot
+      # mask or trigger violations. Any non-zero exit fails the job (fail closed).
+      - name: Default-deny build-input policy check
+        run: python -I -B tools/policy/policy_check.py
+      - name: Policy tool unit tests
+        run: python -I -B -m unittest discover -s tools/policy -v

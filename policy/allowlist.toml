@@ -1,0 +1,46 @@
+# Default-deny build-input / provenance policy for oss-mcd-bios.
+#
+# Checked by tools/policy/policy_check.py. Any tracked file that matches no
+# location below is rejected. Changing this file requires the manual review
+# described in docs/policy-review.md (enforced via .github/CODEOWNERS).
+# NEVER widen a pattern just to make a failing check pass.
+#
+# Pattern syntax: Python fnmatch on repo-relative POSIX paths; `*` also
+# matches `/`, so "src/*" covers everything below src/.
+
+version = 1
+
+[locations]
+# ROM source code (see docs/architecture.md).
+source = ["src/*"]
+# Self-contained synthetic test programs, fixtures and emulator harnesses.
+fixture = ["tests/*"]
+# Reproducible host-side build and validation scripts.
+tool = ["tools/*"]
+# Top-level build entry point (introduced by PR #11).
+build = ["Makefile"]
+# Build outputs. These must be produced by the build, never tracked.
+artifact = ["build/*", "dist/*"]
+# Documentation and repository metadata.
+docs = ["README.md", "LICENSE", "CONTRIBUTING.md", "docs/*"]
+# arch/rules.toml: architecture rules (introduced by PR #12).
+meta = [".gitignore", ".gitattributes", ".github/*", "policy/*", "arch/rules.toml"]
+
+[inputs]
+# Locations treated as build inputs: untracked (including git-ignored) or
+# uncommitted files under these locations are rejected.
+categories = ["source", "fixture", "tool", "build"]
+
+[content]
+# Rejected wherever they appear (compared case-insensitively).
+# `.md` is NOT listed because Markdown shares the extension with Mega Drive
+# ROM dumps; .md files are instead accepted only when they pass the text
+# check below.
+denied_extensions = [
+  ".bin", ".rom", ".gen", ".smd", ".32x", ".sms",
+  ".iso", ".cue", ".img", ".chd", ".mdf", ".mds", ".ccd", ".sub", ".nrg",
+  ".zip", ".7z", ".rar", ".gz", ".xz", ".bz2", ".tar",
+]
+# Every tracked file must be UTF-8 text without NUL bytes and no larger than
+# this. There is intentionally no binary exception list yet.
+max_file_bytes = 1048576
