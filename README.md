@@ -6,7 +6,7 @@ An open-source replacement BIOS project for the **Sega Mega-CD / Sega CD**.
 
 ## Goals
 
-- Produce a redistributable BIOS ROM using original, independently developed code and assets.
+- Produce a redistributable BIOS ROM using original or **license-audited, appropriately reused/adapted OSS** code and original or appropriately licensed assets.
 - Prioritize **emulator compatibility**, while preserving the ability to run on real hardware.
 - Target booting homebrew CD software first, then progressively improve commercial-game compatibility.
 - Support regional Mega-CD / Sega CD variants when verified.
@@ -20,7 +20,7 @@ An open-source replacement BIOS project for the **Sega Mega-CD / Sega CD**.
 
 ## Development approach
 
-1. Document observable behavior, register maps, timing assumptions and their sources.
+1. Search existing OSS BIOS/runtime implementations first; audit the exact files and licenses before direct reuse, adaptation or reference-only use. Document observable behavior, register maps, timing assumptions and their sources.
 2. Implement a minimal 68000 reset and boot path.
 3. Verify CPU startup and inter-CPU communication with repeatable emulator tests.
 4. Add disc detection, sector access and a minimal homebrew boot path.
@@ -34,8 +34,8 @@ No functional BIOS implementation or supported ROM build command exists yet. A r
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md). Contributions must be independently authored; never submit Sega BIOS dumps, extracted assets, or copied disassembly.
+Please read [CONTRIBUTING.md](CONTRIBUTING.md). Contributions may contain independently authored code or audited, license-permitted OSS reused/adapted code. Never submit Sega BIOS dumps, extracted assets, copied disassembly or unapproved third-party code.
 
 ## License
 
-Source code and original documentation in this repository are licensed under the [MIT License](LICENSE), unless a file explicitly states otherwise. Hardware documentation and third-party references retain their respective owners' rights.
+Project-authored source code and original documentation are licensed under the [MIT License](LICENSE). Approved third-party code retains its **own** copyright, license and notice obligations; this repository's MIT license does not relicense it. Hardware documentation and third-party references retain their respective owners' rights.
