@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/mao2009/oss-mcd-bios/tools/evidence/result.schema.json",
+  "title": "oss-mcd-bios compatibility evidence record",
+  "description": "One observation of one checkpoint for one ROM on one emulator (or real hardware). Deterministic: no timestamps, host names, user names or absolute paths. tools/evidence/evidence.py validate() mirrors these rules with the stdlib only; tests/host keeps both in sync.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "status", "checkpoint", "rom_sha256", "rom_commit", "emulator", "environment", "observed", "log_excerpt", "reason"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "status": {"enum": ["PASS", "FAIL", "SKIP", "BLOCKED"]},
+    "checkpoint": {
+      "description": "Stage from docs/compatibility.md. Passing one stage never implies the next.",
+      "enum": ["rom-built", "bios-loaded", "startup", "disc-detected", "homebrew-boot", "game-boot", "playable", "completion-tested"]
+    },
+    "rom_sha256": {"type": ["string", "null"], "pattern": "^[0-9a-f]{64}$"},
+    "rom_commit": {"type": ["string", "null"], "pattern": "^[0-9a-f]{7,40}$"},
+    "emulator": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version", "sha"],
+      "properties": {
+        "id": {"description": "'none' for build-only records, 'hardware:<model>' for real hardware, otherwise an emulator id such as 'gpgx'.", "type": "string", "pattern": "^[a-z0-9][a-z0-9:._-]*$"},
+        "version": {"type": ["string", "null"]},
+        "sha": {"description": "Pinned emulator git revision or binary SHA-256.", "type": ["string", "null"], "pattern": "^[0-9a-f]{7,64}$"}
+      }
+    },
+    "environment": {
+      "type": "object",
+      "required": ["os", "arch"],
+      "additionalProperties": {"type": "string"}
+    },
+    "observed": {"description": "Observed state backing the status (checkpoint id, PC, registers, assertions).", "type": "object"},
+    "log_excerpt": {"description": "Sanitized log tail (see sanitize()).", "type": "string", "maxLength": 4096},
+    "reason": {"type": ["string", "null"]}
+  },
+  "allOf": [
+    {
+      "if": {"properties": {"status": {"enum": ["FAIL", "SKIP", "BLOCKED"]}}},
+      "then": {"properties": {"reason": {"type": "string", "minLength": 1}}}
+    },
+    {
+      "if": {"properties": {"status": {"const": "PASS"}}},
+      "then": {"properties": {"rom_sha256": {"type": "string"}}}
+    },
+    {
+      "if": {"properties": {"checkpoint": {"const": "rom-built"}}},
+      "then": {"properties": {"emulator": {"properties": {"id": {"const": "none"}}}}},
+      "else": {"properties": {"emulator": {"properties": {"id": {"not": {"const": "none"}}}}}}
+    },
+    {
+      "description": "Build-only success never yields a runtime PASS: runtime PASS needs observed state and, for emulators, a pinned emulator sha.",
+      "if": {"properties": {"status": {"const": "PASS"}, "checkpoint": {"not": {"const": "rom-built"}}}},
+      "then": {
+        "properties": {
+          "observed": {"minProperties": 1},
+          "emulator": {
+            "if": {"properties": {"id": {"pattern": "^hardware:"}}},
+            "else": {"properties": {"sha": {"type": "string"}}}
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+{
+  "checkpoint": "startup",
+  "emulator": {
+    "id": "gpgx",
+    "sha": "0123456789abcdef0123456789abcdef01234567",
+    "version": null
+  },
+  "environment": {
+    "arch": "x86_64",
+    "os": "linux",
+    "python": "3.12.0"
+  },
+  "log_excerpt": "PC=0x000204",
+  "observed": {
+    "checkpoint": "reset-loop",
+    "pc": "0x000204"
+  },
+  "reason": null,
+  "rom_commit": null,
+  "rom_sha256": "a04ddae29142b686cdef64692ece50c590896dba4d12ff845eaeb3f40f33ce0d",
+  "schema_version": 1,
+  "status": "PASS"
+}
