@@ -5,10 +5,10 @@
   "invariants": [
     {
       "id": "INV-001",
-      "description": "Image size is exactly 128 KiB (the full Mode 2 boot ROM window $000000-$01FFFF).",
-      "status": "CONFIRMED",
+      "description": "Project build rule: image size equals the currently configured 128 KiB placeholder. This asserts deterministic build output, NOT a verified Mega-CD ROM mapping requirement.",
+      "status": "PROJECT-RULE",
       "enforceable": true,
-      "scope": "hardware",
+      "scope": "project",
       "source": ["rom-layout.md#R-01", "rom-layout.md#R-02", "S-HW 1-1 p.12", "S-HW 1-3 p.16", "E-GPGX core/cd_hw/scd.h:73", "E-PICO pico/pico_int.h:556"],
       "check": { "type": "size_equals", "bytes": 131072 }
     },
@@ -23,10 +23,10 @@
     },
     {
       "id": "INV-003",
-      "description": "Initial PC (24-bit) points inside the ROM window, after the reset vector: 0x000008..0x01FFFE.",
-      "status": "CONFIRMED",
+      "description": "Project build rule: the initial PC (24-bit) must target this generated ROM image after vectors, 0x000008..0x01FFFE. This is a policy for the bootstrap fixture, not a blanket hardware requirement.",
+      "status": "PROJECT-RULE",
       "enforceable": true,
-      "scope": "hardware",
+      "scope": "project",
       "source": ["rom-layout.md#R-12", "S-M68K 6.3.1", "S-HW 1-3 p.16", "E-PICO pico/media.c:364-371"],
       "check": { "type": "u32_range", "offset": 4, "mask": 16777215, "min": 8, "max": 131070 }
     },
