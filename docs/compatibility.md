@@ -36,3 +36,7 @@ Passing one stage **does not imply** passing the next.
 - Reproduction steps:
 
 No commercial game content or proprietary BIOS files should enter this repository, CI artifacts or test fixtures.
+
+## Research and missing specification strategy
+
+See [commercial-compatibility research](compat-research/README.md) for approved-source triage, emulator/HLE investigation, synthetic experiments, evidence stages, Japanese retail-game validation, and cross-region scope. The case study of [Snatcher host-side BIOS HLE](compat-research/snatcher-hle-case-study.md) generates candidate questions but is **not** proof of BIOS ROM compatibility.
