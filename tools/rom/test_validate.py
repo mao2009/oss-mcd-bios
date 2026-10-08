@@ -1,7 +1,9 @@
 """Unit tests for validate.py. Run: python3 -I -B -m unittest discover -s tools/rom -p "test_*.py" -v
 
-testdata/invariants-issue1.json is a verbatim copy of docs/specifications/invariants.json from
-branch agent-a/issue-1-rom-layout (commit c2abc36, schema_version 2), used as a fixture.
+testdata/invariants-issue1.json is adapted from docs/specifications/invariants.json on
+branch agent-a/issue-1-rom-layout (commit c2abc36, schema_version 2). The
+128 KiB ROM size and ROM-target initial-PC range are intentionally tagged
+PROJECT-RULE until the repository accepts a verified hardware contract.
 """
 import contextlib
 import copy
