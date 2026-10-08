@@ -27,7 +27,7 @@ Before committing an external file, translated routine or substantial fragment t
 - Exact file header/explicit license and its text, linked/generated/transitive dependencies, nested origins and exceptions.
 - Use mode: DIRECT, ADAPTED, REFERENCE_ONLY, or REJECTED.
 - Legal assessment: copying, translating, altering, linking and source/binary **ROM distribution**, commercialization, attribution, copyright/NOTICE inclusion, source disclosure/modification record and third-party license separation.
-- Technical fit: 68000 ABI, toolchain dialect, ROM mapping, interrupt/Word RAM/CSDD-CDC responsibilities, boundary conditions.
+- Technical fit: 68000 ABI, toolchain dialect, ROM mapping, interrupt/Word RAM/CDD/CDC responsibilities, boundary conditions.
 - Status: APPROVED / PENDING / RESTRICTED; reviewer and review date, rationale, related Issue/PR, exact validation/test evidence.
 - Store required full upstream licenses, permission/copyright notices and modifications in source/release distribution as their actual licenses require. Never silently relicense external source as project-owned MIT.
 
