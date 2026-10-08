@@ -208,15 +208,15 @@ class RomBuildTest(ArchCheckTest):
     def test_pinned_compiler_target_shell_is_resolved_without_execution(self):
         # The actual ROM Makefile reads the compiler prefix from a tracked lock
         # file. Static analysis must accept only that exact documented expression.
-        self.write("tools/build/toolchain.lock", "target=m68k-elf\\n")
+        self.write("tools/build/toolchain.lock", "target=m68k-elf\n")
         self.patch("CROSS   = $(TC)/bin/m68k-elf-",
-                   "CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\\\r')-")
+                   "CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\r')-")
         self.assertEqual(self.violations(), [])
 
     def test_invalid_pinned_compiler_target_fails_closed(self):
-        self.write("tools/build/toolchain.lock", "target=m68k-elf\\ntarget=evil\\n")
+        self.write("tools/build/toolchain.lock", "target=m68k-elf\ntarget=evil\n")
         self.patch("CROSS   = $(TC)/bin/m68k-elf-",
-                   "CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\\\r')-")
+                   "CROSS   = $(TC)/bin/$(shell sed -n 's/^target=//p' tools/build/toolchain.lock | tr -d '\\r')-")
         self.expect("expected one valid pinned compiler target")
 
     def test_other_shell_make_function_remains_forbidden(self):
