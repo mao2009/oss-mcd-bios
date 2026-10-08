@@ -1,0 +1,26 @@
+name: Compatibility evidence
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tier1:
+    name: "Tier 1: host tooling and evidence (no emulator)"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Host tooling tests (synthetic fixture, golden, differential, E2E)
+        run: python -I -B -m unittest discover -s tests/host -v
+      - name: Validate committed evidence records
+        run: |
+          if [ -d tools/evidence/records ]; then python -I tools/evidence/evidence.py validate tools/evidence/records; else echo "No committed evidence records."; fi
+      - name: Compatibility matrix in docs/compatibility.md is up to date
+        run: python -I tools/evidence/evidence.py matrix --doc docs/compatibility.md --check
