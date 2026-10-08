@@ -1,5 +1,10 @@
 # Genesis Plus GX pin for the external, test-only smoke harness (tools/emu/gpgx_harness.py).
-# Fetched and built at test time into tools/emu/.cache/ -- never vendored into this repository.
+# Shared plain key=value lock format. Fetched and built at test time into a cache OUTSIDE the
+# repository ($GPGX_CACHE_DIR, default <user cache dir>/oss-mcd-bios/gpgx) -- never vendored.
 # The emulator is under a NON-COMMERCIAL license (see its LICENSE.txt); it is NOT MIT.
-repo=https://github.com/mao2009/Genesis-Plus-GX
+name=gpgx
+version=v1.7.4
+url=https://github.com/mao2009/Genesis-Plus-GX
 commit=87dd8b80802ff5217ab2f765202b6b14ecd23f94
+command=python -I tools/emu/gpgx_harness.py run --rom <BIOS_ROM> --expect <SPACE:HEXADDR=HEXBYTES>
+version_cmd=python -I tools/emu/gpgx_harness.py version

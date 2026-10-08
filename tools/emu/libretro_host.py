@@ -1,10 +1,11 @@
 """Minimal headless libretro host (child process of gpgx_harness.py).
 
 Original code written against the public libretro C ABI; it contains no emulator code.
-Loads a libretro core, boots ROM as content for N frames, writes RAM dumps in 68000
-byte order to WORKDIR and prints one JSON object on stdout.
+Loads a libretro core with CONTENT (system directory = WORKDIR/system), runs N frames,
+writes RAM dumps in 68000 byte order to WORKDIR (<space>.init.bin right after load =
+power-on state, <space>.bin after the last frame) and prints one JSON object on stdout.
 
-usage: python -I libretro_host.py CORE ROM FRAMES WORKDIR REGION
+usage: python -I libretro_host.py CORE CONTENT FRAMES WORKDIR REGION
 """
 import ctypes as C
 import hashlib
@@ -24,6 +25,11 @@ SAMPLE_EVERY = 60
 
 class GameInfo(C.Structure):
     _fields_ = [("path", C.c_char_p), ("data", C.c_void_p), ("size", C.c_size_t), ("meta", C.c_char_p)]
+
+
+class SystemInfo(C.Structure):
+    _fields_ = [("library_name", C.c_char_p), ("library_version", C.c_char_p), ("valid_extensions", C.c_char_p),
+                ("need_fullpath", C.c_bool), ("block_extract", C.c_bool)]
 
 
 class Variable(C.Structure):
@@ -106,8 +112,11 @@ def main(core_path, rom_path, frames, workdir, region):
                        "input_poll", "input_state"], cbs):
         getattr(core, "retro_set_" + fn)(cb)
 
-    result = {"api_version": core.retro_api_version(), "loaded": False, "frames_run": 0,
-              "regions": [], "samples": [], "core_log": logs}
+    si = SystemInfo()
+    core.retro_get_system_info(C.byref(si))
+    result = {"api_version": core.retro_api_version(),
+              "library_version": (si.library_version or b"").decode(errors="replace"),
+              "loaded": False, "frames_run": 0, "regions": [], "samples": [], "core_log": logs}
     core.retro_init()
     info = GameInfo(os.path.abspath(rom_path).encode(), None, 0, None)
     result["loaded"] = bool(core.retro_load_game(C.byref(info)))
@@ -121,15 +130,19 @@ def main(core_path, rom_path, frames, workdir, region):
             return {k: unswap(C.string_at(p, n)) for k, (p, n) in
                     ((k, v) for k, v in dumps.items() if v)}
 
+        def save(suffix):
+            for k, v in snap().items():
+                with open(os.path.join(workdir, k + suffix), "wb") as fh:
+                    fh.write(v)
+
+        save(".init.bin")  # retro_load_game has reset the system: this is the power-on state
         for f in range(1, frames + 1):
             core.retro_run()
             result["frames_run"] = f
             if f % SAMPLE_EVERY == 0 or f == frames or f == 1:
                 result["samples"].append({"frame": f, **{f"{k}_sha256": hashlib.sha256(v).hexdigest()
                                                          for k, v in snap().items()}})
-        for k, v in snap().items():
-            with open(os.path.join(workdir, k + ".bin"), "wb") as fh:
-                fh.write(v)
+        save(".bin")
         core.retro_unload_game()
     core.retro_deinit()
     print(json.dumps(result))

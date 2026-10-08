@@ -9,9 +9,28 @@ the harness fetches and builds it at test time at the pinned revision.
   ("Merge feature/phase1-core-instrumentation: Add core instrumentation", 2026-08-21)
 - Inspected on: 2026-10-08, read-only clone outside this repository.
 
-All `file:line` citations refer to that SHA. Labels:
+All `file:line` citations refer to **the fork pin `mao2009@87dd8b8`**, not upstream. Labels:
 **CONFIRMED** = read in source at the pin and/or observed by running the harness;
 **UNVERIFIED** = inferred, not yet exercised.
+
+### Fork pin vs upstream `ekeeke@49c5847`
+
+Other project notes (e.g. Agent A's INV docs) cite upstream `ekeeke/Genesis-Plus-GX@49c584764893`
+(2026-10-06). The relationship, checked with `git diff 49c5847 87dd8b8` (CONFIRMED):
+
+- Both branch from merge-base `27426f0`. The fork adds 10 commits (instrumentation: `emu_event`, S68K/Z80
+  hooks, all under `#ifdef HOOK_CPU`). Upstream has 13 newer commits that the fork lacks. These include
+  Main/Sub-CPU synchronization fixes in `core/cd_hw/scd.c` (MCD-verificator IRQ tests), a timer period
+  fix, CHD metadata bounds and savestate index validation.
+- **Identical** in both: `core/loadrom.c`, `libretro/libretro.c`, `core/macros.h`, `core/cd_hw/scd.h`,
+  `libretro/link.T`, `Makefile.libretro`, `libretro/Makefile.common`. Line citations in these files
+  are valid for both revisions.
+- **Different**: `core/cd_hw/scd.c` and `core/cd_hw/cdd.c` (fork: `HOOK_CPU` includes and event pushes;
+  upstream: the sync fixes and CHD bounds). Line numbers in those two files are **fork-only**.
+- Consequence: Mega-CD CPU-synchronization behaviour at the fork pin is older than upstream. A
+  discrepancy between the two must not be resolved by adapting the BIOS to either one (see
+  `docs/reuse-from-projects.md`, convention 4). Re-pinning to a fork commit rebased on upstream is
+  future work.
 
 ## 1. License
 
@@ -23,8 +42,8 @@ All `file:line` citations refer to that SHA. Labels:
 | The repository tracks a prebuilt `builds/genesis_plus_gx_libretro.dll`; the harness does **not** use it (it builds from source so the SHA identifies the binary). | CONFIRMED | `git ls-files builds/` at the pin |
 
 Consequence: the harness only stores the **repo URL + SHA** (`tools/emu/gpgx.lock`). Source and binaries
-live in the git-ignored `tools/emu/.cache/` and must never be committed, attached to releases or uploaded
-as CI artifacts of this project. The harness host (`tools/emu/libretro_host.py`) is original code written
+live in a cache **outside the repository tree** (`$GPGX_CACHE_DIR`, default `<user cache dir>/oss-mcd-bios/gpgx`)
+and must never be committed, attached to releases or uploaded as CI artifacts of this project. The harness host (`tools/emu/libretro_host.py`) is original code written
 against the public libretro C ABI and does not include or link emulator source at build time.
 
 ## 2. How a Mega-CD BIOS ROM is loaded
@@ -38,9 +57,16 @@ against the public libretro C ABI and does not include or link emulator source a
 | `load_bios(SYSTEM_MCD)` picks the file by `region_code` (USA → `_U`, Europe → `_E`, else `_J`) and loads at most `sizeof(scd.bootrom)` = 128KB. | CONFIRMED | `core/loadrom.c:394-417`, `core/cd_hw/scd.h:73` |
 | No size/checksum validation beyond `size > 0`. Hardware model is chosen from the 16 bytes at `$120`: `WONDER-MEGA BOOT`, `WONDERMEGA2 BOOT`, `CDX BOOT ROM    `, otherwise default model. | CONFIRMED | `core/loadrom.c:419-442` |
 | On little-endian hosts the BOOT ROM is byte-swapped per 16-bit word after load. | CONFIRMED | `core/loadrom.c:444-453` |
-| For a CD image the region comes from the security-code byte at disc header `$20B` (`0x64` Europe, `0xA1` Japan, else USA). Booting this way needs a disc image, which this project does not yet have. | CONFIRMED (code) | `core/loadrom.c:1056-1073`, `core/loadrom.c:579-591, 718-733` |
+| A BIOS file larger than 128KB is truncated, not rejected. The only hard limit is `MAXROMSIZE`. | CONFIRMED (code) | `libretro/libretro.c:354-363` |
+| For a CD image the region comes from the security-code byte at disc header `$20B` (`0x64` Europe, `0xA1` Japan, else USA). The core option `genesis_plus_gx_region_detect` overrides it before `load_bios` runs. | CONFIRMED (code) | `core/loadrom.c:1056-1073, 1155-1158`, `core/loadrom.c:579-591, 718-733` |
+| A cooked (2048-byte sector) image is accepted as a Mega-CD disc when its first 14 bytes are `SEGADISCSYSTEM`; no further content is required for the core to enter Mega-CD mode and load the system-directory BIOS. | CONFIRMED (code + harness run) | `core/cd_hw/cdd.c:584-602` (fork line numbers) |
 
-### 2b. Path used by the harness: BIOS image loaded *as content* ("BR" boot ROM)
+**Harness default (`--mode system`)** follows this normal path. The ROM is copied unchanged to
+`bios_CD_U.bin`, `bios_CD_E.bin` and `bios_CD_J.bin` (one file under each name, so region choice cannot
+pick a missing file). A synthetic 32KB disc image is inserted; it contains only the `SEGADISCSYSTEM` ID
+and no program, and is generated per run. **No emulator-specific requirement is placed on the BIOS ROM.**
+
+### 2b. Optional harness path (`--mode bootrom`, emulator-specific): BIOS image loaded *as content* ("BR" boot ROM)
 
 When a cartridge-style image (≤ 8MB) is loaded with add-on mode not `none`, the core switches to
 Mega-CD hardware and copies the image into the BOOT ROM if the header type field contains `BR`:
@@ -56,10 +82,10 @@ Mega-CD hardware and copies the image into the BOOT ROM if the header type field
 | With boot-from-CD, the BOOT ROM is mapped at main-CPU `$000000-$01FFFF` (mirrored), so the main 68000 reset vectors come from the image. | CONFIRMED (code + harness run) | `core/cd_hw/scd.c:1598-1620` |
 | TMSS boot ROM is off by default in the libretro core (`config.bios = 0`). | CONFIRMED | `libretro/libretro.c:1074` |
 
-Implication for this project: the harness requires our ROM header to carry `BR` at `$180` and no `C` in
-`$190-$19D`. These are header conventions of the platform, not emulator hooks, but whether the BIOS
-header layout adopts them is Issue #1's decision (**UNVERIFIED** for our ROM until #1 lands). The harness
-reports `BLOCKED` with the reason when a ROM does not meet these preconditions.
+Implication for this project: these are **emulator-loader conditions** (Agent A's INV-009 rates them
+ESTIMATED and emulator-only). The BIOS must not be shaped to satisfy them. The harness applies them
+only in the opt-in `--mode bootrom`, and reports `BLOCKED` with the reason when a ROM does not meet them.
+The default `--mode system` (2a) has no header requirement.
 
 ## 3. Headless options
 
@@ -90,17 +116,27 @@ function, or a memory-map descriptor) and be built with `HOOK_CPU=1`. Then bump 
 
 ## 5. Harness observations at the pin
 
-- Synthetic fixture (`gpgx_harness.py make-fixture`, 128KB, hand-assembled: `move.l #'OKOK',$FF0000` then
-  `bra.s *`, header `BR` at `$180`, country `U`) → status `PASS` with `--expect main:FF0000=4F4B4F4B`
-  after 120 frames; the same run with `--expect main:FF0000=00000000` → `FAIL`. **CONFIRMED** (Windows 11,
-  MinGW-w64 GCC, Python 3.14).
-- This proves only the harness/loader path (stage *BIOS-loaded* → a main-CPU checkpoint). It says nothing
-  about sub-CPU startup, disc handling or compatibility of this project's BIOS. No result for an actual
-  oss-mcd-bios ROM exists yet (none is built).
+The following were observed on Windows 11 with MinGW-w64 GCC and Python 3.14 (**CONFIRMED**). The
+synthetic fixture is `gpgx_harness.py make-fixture`: 128KB, hand-assembled `move.l #'OKOK',$FF0000`
+followed by `bra.s *`, country `U`.
+
+- The fixture gives `PASS` (checkpoint `startup`) with `--expect main:FF0000=4F4B4F4B` in both
+  `--mode system` and `--mode bootrom`. In `--mode system` it passes even with the `BR` header bytes blanked.
+- A "do-nothing" ROM (same vectors, idle loop only) gives `FAIL`. With `--expect main:FF0000=00000000`
+  it fails because the value equals the power-on state, which reads `00000000` at this pin. With
+  `=4F4B4F4B` it fails because the assertion does not hold.
+- The power-on snapshot is taken right after `retro_load_game`, which resets the system, and before
+  the first `retro_run`.
+- Records emitted for PASS, FAIL, SKIP and BLOCKED pass the rules of `validate()` from the evidence
+  tool on branch `agent-d/issue-6-evidence` (PR #13).
+- This proves only the harness/loader path: stage *bios-loaded*, then one main-CPU checkpoint. It says
+  nothing about sub-CPU startup, disc handling or compatibility of this project's BIOS. No result for
+  an actual oss-mcd-bios ROM exists yet, because none is built.
 
 ## 6. Open / unverified items
 
 - Linux/macOS builds and the harness there (UNVERIFIED; expected to work with `make`).
 - Sub-CPU execution: the sub 68000 stays in reset until the main CPU releases it; harness only reads PRG-RAM.
-- Whether Issue #1's header layout keeps `BR` at `$180` (UNVERIFIED).
-- Region selection for BIOS-as-content beyond the default `U` fixture (code read only).
+- Region override (`--region pal/ntsc-j`) has been read in code only; it has not been exercised (UNVERIFIED).
+- The power-on RAM contents at other pins or on other hosts may differ. The harness snapshots them on
+  every run instead of assuming zeros.
