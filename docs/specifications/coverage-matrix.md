@@ -2,9 +2,9 @@
 
 > [!WARNING]
 > **Research notes only. Not an implementation basis. Do not merge before PR #16.**
-> Issue #17 (provenance policy for CONFIDENTIAL / PROPERTY-OF-SEGA material) is **still undecided** as of 2026-10-08. In every "implementable from public material only" judgement below, CONFIDENTIAL-marked material (S-HW, S-BIOS, S-SDM, S-FMT, Tech Bulletins, Sega SDK files known only by reference) is **excluded**. It is recorded only as existing material with a usage problem, and as a lead for independent experiments. No Sega BIOS binary, dump or disassembly was obtained, read or used by any audit agent or by this integration.
+> Issue #17 (provenance policy for CONFIDENTIAL / PROPERTY-OF-SEGA material) is **still undecided** as of 2026-10-08. In every "implementable from public material only" judgement below, CONFIDENTIAL-marked material (S-HW, S-BIOS, S-SDM, S-FMT, Tech Bulletins, Sega SDK files known only by reference) is **excluded**. The headline rate also excludes rows whose only basis derives from that material or from reverse engineering. It is recorded only as existing material with a usage problem, and as a lead for independent experiments. No Sega BIOS binary, dump or disassembly was obtained, read or used by any audit agent or by this integration.
 
-Integration date: 2026-10-08. Base: `origin/agent-a/issue-1-rom-layout` @ `c2abc36` (PR #16). Inputs, merged unchanged:
+Integration date: 2026-10-08 (revised the same day after an independent review; see §8). Base: `origin/agent-a/issue-1-rom-layout` @ `c2abc36` (PR #16). Inputs, merged from their branches (corrections made during integration review are listed in §8):
 
 | Area | File | Prefix | Items |
 | --- | --- | --- | --- |
@@ -14,88 +14,170 @@ Integration date: 2026-10-08. Base: `origin/agent-a/issue-1-rom-layout` @ `c2abc
 | D CDC/CDD, disc format, boot sequence | [coverage/cd-boot.md](coverage/cd-boot.md) | `CD-` | 105 |
 | E Source provenance and experiments | [coverage/provenance-experiments.md](coverage/provenance-experiments.md) | `PRV-` | 37 |
 
-Levels: **LA** = minimal BIOS boot, **LB** = boot a homebrew CD program, **LC** = commercial-game-compatible BIOS. Evidence labels follow [README.md](README.md). Emulator behaviour is a model, not hardware truth. This integration did **not** re-run the area agents' clones or re-check their citations; it only consolidates, cross-checks the area files against each other, and computes the rates.
+Levels: **LA** = minimal BIOS boot, **LB** = boot a homebrew CD program, **LC** = commercial-game-compatible BIOS. Evidence labels follow [README.md](README.md). Emulator behaviour is a model, not hardware truth. This integration did not re-run every citation. The independent review sampled 29 rows against the pinned clones; the over-claims it found are corrected in the area files (§8).
 
 ## 日本語要約
 
 - **目的**: オリジナル BIOS を使わず、公開資料・独立資料だけで Mega-CD 互換 BIOS を実装できるかを判定する。5 領域 (A–E) の監査結果 406 項目を 1 つの表 (§7) に統合した。
 - **前提**: Issue #17 (CONFIDENTIAL 資料の扱い) は**未決定**。CONFIDENTIAL / PROPERTY OF SEGA 表示のある資料は「公開資料のみ」の判定から**除外**した。
 - **カバレッジ率** (§4、`tools/audit/coverage_rate.py` で算出。レベルは累積):
-  - 見出し値 (検証可能な仕様が非除外資料で定義済み): **LA 80/93 = 86.0%、LB 192/228 = 84.2%、LC 286/406 = 70.4%**。
-  - 出典欄が公式マニュアル由来・リバースエンジニアリング由来と記録された項目を除くと: LA 78/93 = 83.9%、LB 151/228 = 66.2%、LC 210/406 = 51.7%。
-  - 「実装可能 = Y」(条件なし) のみ: LA 51/93 = 54.8%、LB 91/228 = 39.9%、LC 111/406 = 27.3%。
-  - 領域 C の LA は項目 0 件のため**算出不能**。VDP/Z80 初期化、PCM、BIOS UI などは**どの領域でも列挙されておらず算出不能**。率は列挙の仕方に依存する値であり、ハードウェア検証済みの割合ではない。
+  - **見出し値**: **LA 71/93 = 76.3%、LB 139/228 = 61.0%、LC 193/406 = 47.5%**。次の 3 条件をすべて満たす項目を数えた。
+    - 検証可能な仕様が定義済みである。
+    - 根拠が除外資料・リバースエンジニアリング (RE) 由来・出所不明の資料だけではない。
+    - 領域間の不一致グループ (X-nn) の全行が定義済みである。
+  - 参考値 (副次ビュー):
+    - 出典条件のみ: LA 80/93、LB 151/228、LC 209/406。
+    - 不一致条件のみ: LA 71/93、LB 172/228、LC 257/406。
+    - マニュアル/RE 由来も含む緩い値: LA 80/93 = 86.0%、LB 192/228 = 84.2%、LC 285/406 = 70.2%。
+  - 領域 C (BIOS API) の見出し値は LB 2/38。LA は項目 0 件のため**算出不能**。
+  - VDP/Z80 初期化、PCM、BIOS UI、機種バリアントは**どの領域でも列挙されておらず算出不能**。
+  - 率は列挙の仕方に依存する値であり、ハードウェア検証済みの割合ではない。
 - **最終判定** (§2):
-  - **A) 最小 BIOS 起動**: **条件付き可能**。エミュレータ上では実装可能。実機では COM-86 (ゲートアレイ初期化の要否) などを Mode-1 プローブ実験で確認する必要がある。
-  - **B) 自作 CD プログラム起動**: **条件付き可能**。自前 ABI のプログラムならエミュレータ上で可能。MegaDev 系 homebrew 互換には、Sub BIOS API の出典問題 (X-04) を Issue #17 / OQ-7 の決定またはクリーンルーム観測で解消する必要がある。CDD プロトコルは独立系統の裏付けがない (X-09)。
-  - **C) 市販ゲーム互換 BIOS**: **現時点では困難**。セキュリティブロックの依存関係、Main `$280` ライブラリ (OQ-7)、BRAM 媒体フォーマット、CD ステータス構造、通信フラグ規約、タイミングについて、調査した資料の範囲では非除外の仕様が見つからなかった。
-- **開発停止級の欠落** (§1): 最優先は Issue #17 の決定、Sub BIOS API の出典、CDD プロトコルの独立検証、IP/SP 進入時の Word RAM 状態、セキュリティ/リージョン方針 (OQ-8)。
-- **領域間の不一致** 22 件 (X-01–X-22) を両論併記で §3 に記録した。どちらかに統合したり、ブロッカーを書き換えたりはしていない。
+  - **A) 最小 BIOS 起動: 条件付き可能**。エミュレータのモデルに対しては実装可能。実機では次の点が条件になる。
+    - COM-86 (ゲートアレイ初期化の要否)
+    - CDD の立ち上げとタイミング
+    - 自前の実測値がないこと
+  - **B) 自作 CD プログラム起動**: 条件付き可能なのは **B1 (自前 ABI のプログラム) のみ**。
+    - **B2 (MegaDev 系 homebrew 互換) は現時点では困難**。調査した資料の範囲では、Sub BIOS API の知識として、除外マニュアル・RE・出所不明以外に由来するものは見つからなかった (X-04)。
+    - B2 には Issue #17 / OQ-7 の決定か、クリーンルーム観測 (LEGAL-REVIEW 要) が必要。
+  - **C) 市販ゲーム互換 BIOS: 現時点では困難**。調査した資料の範囲では、次の項目に非除外の仕様が見つからなかった。
+    - セキュリティブロックの依存関係
+    - Main `$280` ライブラリ (OQ-7)
+    - BRAM 媒体フォーマット
+    - CD ステータス構造
+    - 通信フラグ規約
+    - タイミング
+- **開発停止級の欠落** (§1): 最優先は次の 5 点。
+  - Issue #17 の決定
+  - Sub BIOS API の出典
+  - CDD プロトコルの独立検証
+  - IP/SP 進入時の Word RAM 状態
+  - セキュリティ/リージョン方針 (OQ-8)
+- **領域間の不一致** 22 件 (X-01–X-22) は §3 に両論併記で記録し、率の計算にも反映した。どちらかに統合したり、ブロッカーを書き換えたりはしていない。
+- **統合レビューでの修正**: §8 に一覧を載せ、該当する領域ファイルの行にも注記した。
 
 ## 1. Development-stopping gaps (prioritised)
 
-A gap is **development-stopping** when at least one area marks it as a blocker (Blocker column starts with Y, or says "Y for" a stage). Ordered by the lowest level it stops, then by how many items depend on it. Blocker text is as written by the area files; where areas disagree, both positions are kept (see §3).
+A gap is **development-stopping** when at least one area marks it as a blocker: the Blocker column starts with Y, says "Y for" a stage, or inherits a blocker "via" another row. Gaps are ordered by the lowest level they stop, then by how many items depend on them. Blocker text is as written by the area files. Where areas disagree, both positions are kept (see §3).
 
 | # | Gap | Stops | Items (blocker as marked by the area) | Disagreement | What could close it (legal, independent) |
 | --- | --- | --- | --- | --- | --- |
 | G-1 | **Issue #17 undecided.** Status of CONFIDENTIAL-marked manuals. PR #16 cannot merge; items whose only official cross-check is excluded stay ESTIMATED. | all levels (process) | PRV-01 (Y) | none | A maintainer decision. Not closable by experiment. |
-| G-2 | **Sub-BIOS API provenance.** Entry points (`$5F0A-$5F3A`), function codes, register ABI: every non-excluded listing (MegaDev, clownmdemu HLE) traces to the excluded manual or to RE, or to an undeclared method. | LB (homebrew built with MegaDev), LC | CD-080 (Y, LB); PRV-02 (Y, LB); PRV-12 (Y, LB); CD-091 (Y, LC). Area C marks most of API-01…API-46 Cond and **not** blocking (its blockers there are API-23 and API-45, at LC only). | **X-04** | #17 / OQ-7 decision (option CR-C). Or caller census E1(a) on public homebrew (no Sega code), plus in-situ observation E2 / EXP-04 (LEGAL-REVIEW: uses the console's own BIOS). A BIOS that defines its **own** ABI for its **own** SDK does not need this. |
-| G-3 | **CDD command/status protocol independence.** Area E: one code lineage examined (PicoDrive's CDD is Genesis Plus GX code), no measurement. Area D: BlastEm `cdd_mcu.h` enum names agree with GX (header read via WebFetch only; licence unverified). | LB (any disc read); LA on real hardware | PRV-15 (Y, LB); CD-030 / CD-039 ("Y for real-HW LA") | **X-09** | Mode-1 CDD logger probe (area D experiment 2, EXP-02): our own Sub code on our own CD-R. Reading BlastEm / ares source (licence check first) for a second lineage. |
-| G-4 | **Word RAM mode and owner at IP/SP entry.** clownmdemu hands 2M to Sub; the 0BSD boot ROM sets 1M; the original's choice is not in any non-excluded source examined. | LB / LC | COM-52 (Y, LB/LC); CD-117 (Y, LC); ROM-65 (N); API-72 (N) | **X-01** | For our own SDK, a documented choice. For compatibility: E-5 / X-9 IP-entry recorder (LEGAL-REVIEW: runs under the original BIOS). |
+| G-2 | **Sub-BIOS API provenance.** Entry points (`$5F0A-$5F3A`), function codes, register ABI. In the sources examined (MegaDev, clownmdemu HLE, the 0BSD boot ROM, the Mode-1 library, GX, PicoDrive), every listing traces to the excluded manual, to RE, or to an undeclared method. | LB (MegaDev-class homebrew), LC | CD-080 (Y, LB); PRV-02 (Y, LB); PRV-12 (Y, LB); CD-091 (Y, LC). Area C marks most of API-01…API-46 Cond and **not** blocking (its blockers there are API-23 and API-45, at LC only). | **X-04** | #17 / OQ-7 decision (option CR-C). Or the caller census E1(a) on public homebrew (no Sega code), plus in-situ observation E2 / EXP-04 (LEGAL-REVIEW: uses the console's own BIOS). A BIOS that defines its **own** ABI for its **own** SDK does not need this. |
+| G-3 | **CDD command/status protocol independence.** Area E: one code lineage examined (PicoDrive's CDD is Genesis Plus GX code), no measurement. Area D: BlastEm `cdd_mcu.h` enum names agree with GX, but its independence from GX is unproven (header read via WebFetch only, no licence text). | LB (any disc read); LA on real hardware | PRV-15 (Y, LB); CD-030 / CD-039 ("Y for real-HW LA") | **X-09** | Mode-1 CDD logger probe (area D experiment 2, EXP-02): our own Sub code on our own CD-R. Reading BlastEm / ares source (licence check first) for a possible second lineage. |
+| G-4 | **Word RAM mode and owner at IP/SP entry.** clownmdemu hands 2M to Sub; the 0BSD boot ROM sets 1M; the original's choice was not found in any non-excluded source examined. | LB / LC | COM-52 (Y, LB/LC); CD-117 (Y, LC); ROM-65 (N); API-72 (N) | **X-01** | For our own SDK, a documented choice. For compatibility, the E-5 / X-9 IP-entry recorder (LEGAL-REVIEW: runs under the original BIOS). |
 | G-5 | **Security / region check policy** for our BIOS. | LB per area C; LC per areas A, D, E | API-71 (Y, LB policy); ROM-101 (Y); CD-130 (Y); PRV-05 (Y for LC) | **X-06** (CD-132 says our own discs boot without any check: Y) | OQ-8 legal decision. Negative tests EXP-05 on our own discs. |
 | G-6 | **Gate-array "forced reset" / init necessity on real hardware.** The only statement found is in excluded S-HW. | LA on real hardware | COM-86 (Y); ROM-44 (Cond, N) | X-11 | X-2 init-necessity experiment (two builds, 1000 cold/warm boots; own code). |
-| G-7 | **No hardware measurements of our own.** Every hardware-scope claim rests on emulators, SDKs or second-hand "verified on real hardware" comments. Also TMSS on TMSS units, and Mode-2-only behaviour. | LA hardware claims, release | PRV-22 (Y for release); PRV-27 (Y for TMSS hardware boot); PRV-25 (Y for a Mode-2 hardware claim); PRV-14 / PRV-16 (Y for hardware claims) | X-15 (ROM-31 marks TMSS N) | E-1 / X-1 / EXP-01 Mode-1 probe; EXP-10 timing. Mode-2 boot-ROM placement needs an FPGA host (unverified) or chip replacement (out of scope: hardware modification). |
-| G-8 | **Retail security block** that every commercial IP runs first, and what it expects from the boot ROM. | LC | CD-131 (Y); PRV-07 (Y); PRV-05 (Y) | X-06 | Only by clean-room observation (EXP-09, area D experiment 6): LEGAL-REVIEW before anyone runs it. |
-| G-9 | **Main `$280` library and BIOS work area** (`$FFFDB4+`), and the Main-side comm-flag / Sub-proxy protocol. Known from RE (MegaDev) or of undeclared origin (0BSD boot ROM); the protocol part is not understood even in the RE source. | LC | ROM-11, ROM-71, COM-35, COM-82, API-82…API-94, API-92, PRV-03 (all Y) | X-08 | OQ-7 clean-room protocol (CR-A / CR-D) plus E4 black-box `$280` calls (needs OQ-7 approval first). |
-| G-10 | **BRAM on-media format** compatible with existing saves and RAM carts. | LC (interoperability) | ROM-90 (Y); API-60 (Y); PRV-13 ("Y only for save interoperability") | **X-07** (PRV-13 marks it Cond; ROM-90 / API-60 mark it N) | E-4 / E3 / EXP-08: format and save with own homebrew, read the raw data back. Data, not code; LEGAL-REVIEW (light). |
+| G-7 | **No hardware measurements of our own.** Every hardware-scope claim rests on emulators, SDKs or second-hand "verified on real hardware" comments. Also covers TMSS on TMSS units, and Mode-2-only behaviour. | LA hardware claims, release | PRV-22 (Y for release); PRV-27 (Y for TMSS hardware boot); PRV-25 (Y for a Mode-2 hardware claim); PRV-14 / PRV-16 (Y for hardware claims); CD-030 / CD-039 (Y for real-HW LA) | X-15 (ROM-31 marks TMSS N) | E-1 / X-1 / EXP-01 Mode-1 probe; EXP-10 timing. Mode-2 boot-ROM placement needs an FPGA host (unverified) or chip replacement (out of scope: hardware modification). |
+| G-8 | **Retail security block** that every commercial IP runs first, and what it expects from the boot ROM. | LC | CD-131 (Y); PRV-07 (Y); PRV-05 (Y) | X-06 | Only by clean-room observation (EXP-09, area D experiment 6). LEGAL-REVIEW before anyone runs it. |
+| G-9 | **Main `$280` library, BIOS work area** (`$FFFDB4+`) **and the Main-side comm-flag / Sub-proxy protocol.** Not found in the sources examined (MegaDev, the 0BSD boot ROM, clownmdemu, GX, PicoDrive, the megadrive.org TOC) except as RE-derived material (MegaDev) or material of undeclared origin (0BSD boot ROM). The protocol part is "not well understood" even in the RE source. | LC | ROM-11, ROM-71, COM-35, COM-82, API-82…API-94, API-92, PRV-03 (all Y) | X-08 | OQ-7 clean-room protocol (CR-A / CR-D) plus E4 black-box `$280` calls (needs OQ-7 approval first). |
+| G-10 | **BRAM on-media format** compatible with existing saves and RAM carts. | LC (interoperability) | ROM-90 (Y); API-60 (Y); API-56 (`BRMFORMAT`, Blocker "via API-60": inherited); PRV-13 ("Y only for save interoperability") | **X-07** (PRV-13 marks it Cond; ROM-90 / API-60 mark it N) | E-4 / E3 / EXP-08: format and save with own homebrew, then read the raw data back. Data, not code; LEGAL-REVIEW (light). |
 | G-11 | **CD status block and CD service semantics** (`CDBSTAT` fields, CD-DA services, `_CDBOOT`, contested function codes). | LC (LB only if homebrew polls `$5E80`) | API-23 (Y, LC); CD-081 (Y); CD-083 (Y); CD-089 (Y); CD-091 (Y) | **X-05**, X-17, X-18 | E2 / E5 probes; E1 census for which codes are actually called. |
 | G-12 | **Sub user-call contract** (registers, SR, return codes, cadence). | LC | COM-32 (Y, LC); COM-33 (Y, LC) | X-12 | E2 register-diff probe; E-5 SR recorder (LEGAL-REVIEW). |
 | G-13 | **CPU / comm state at IP and SP entry** that games rely on. | LC | CD-117 (Y); COM-36 (Y) | X-02 | E-5 / X-9 (LEGAL-REVIEW). |
 | G-14 | **Drive and seek timing** that games sync against. | LC | API-45 (Y); CD-107 (Y); CD-037 ("Y for LC") | X-19 | E5 / area D experiment 4 / EXP-10 on our own CD-R. Own code only. |
 | G-15 | **Masked Sub-interrupt latch semantics.** Emulators conflict. | LC | COM-66 (Y) | none | X-3 latch matrix (own code). |
 | G-16 | **Mode-1 Sub-BIOS discoverability** (compressed Sub BIOS location and signature). | LC (Mode 1 subset) | ROM-10 (Y); COM-58 (Y) | **X-13** (API-76: N, "design constraint"; offsets differ) | E-3 / X-10: public Mode-1 homebrew in emulators with our ROM. |
-| G-17 | **Legal basis for observation and for reading disassembly.** | LC | PRV-26 (Y); PRV-34 (Y for CR-A) | none | Not closable by experiment: LEGAL-REVIEW. |
-| G-18 | **Release-only reviews**: patent / trademark / naming; per-model variants. | release; broad LC claims | PRV-35 (Y for release); PRV-29 (Y for broad LC claims) | none | Legal review; EXP-07 public PCB evidence. |
-| G-19 | Boot-header IP layout parity; reference comparison of test discs; Main `$FFFD00` full slot map. | LC parity | CD-022 ("Y for LC parity"); PRV-09 ("Y for the reference comparison"); PRV-04 ("Y for full LC") | X-16, X-03 | E6 slot mapping; EXP-05. |
+| G-17 | **CDD drive reaction to a bad command checksum**, and whether the BIOS must verify the status checksum. | LC robustness | CD-033 ("N (LA) / Y for LC robustness") | none | Area D experiment 2: the probe sends a deliberately bad checksum (harmless). |
+| G-18 | **Legal basis for observation and for reading disassembly.** | LC | PRV-26 (Y); PRV-34 (Y for CR-A) | none | Not closable by experiment: LEGAL-REVIEW. |
+| G-19 | **Release-only reviews**: patent / trademark / naming; per-model variants. | release; broad LC claims | PRV-35 (Y for release); PRV-29 (Y for broad LC claims) | none | Legal review; EXP-07 public PCB evidence. |
+| G-20 | Boot-header IP layout parity; reference comparison of test discs; Main `$FFFD00` full slot map. | LC parity | CD-022 ("Y for LC parity"); PRV-09 ("Y for the reference comparison"); PRV-04 ("Y for full LC") | X-16, X-03 | E6 slot mapping; EXP-05. |
 
 The remaining (non-stopping) gaps are in §5.
 
 ## 2. Final judgement
 
-Each verdict lists the blockers it depends on. "Not found" always means **not found in the sources examined** (§6), never "does not exist".
+Each verdict lists the blockers it depends on. "Not found" always means **not found in the sources examined** (§6), never "does not exist". All rates quoted here are the §4 headline (defined, provenance-clean and undisputed) unless labelled otherwise.
 
 ### A) Is the spec sufficient for a minimal BIOS boot? **条件付き可能 (conditional)**
 
-- **Emulator target: feasible now.** Cumulative LA rate 80/93 = 86.0% (headline), 78/93 = 83.9% excluding manual/RE-derived items. CPU behaviour has a vendor source (M68000 UM). Gate-array, PRG-RAM, Sub reset and CDD/CDC bring-up are defined by agreeing emulators and SDKs. Prior art: an independently written 0BSD minimal boot ROM (`clownmdemu-mcd-boot`) runs in clownmdemu (area A §3; its knowledge provenance is undeclared, so it may be studied for facts but not copied).
-- **Real hardware: conditional** on G-6 (COM-86, init necessity), G-3 (CDD bring-up and INT4 timing, CD-030 / CD-039), G-7 (no measurements; TMSS PRV-27). LA items not defined by the rule include ROM-05, ROM-09, ROM-31, ROM-43, COM-14, COM-86, CD-030 (conflict, or UNCONFIRMED hardware behaviour).
-- **Process:** G-1 (Issue #17) blocks merging PR #16, but LA facts do not depend on excluded material (area A §3, area B §3).
-- **How far legal independent experiments close it:** almost entirely. E-1 / X-1 / EXP-01 (Mode-1 probe), X-2 (init necessity), area D experiment 2 (CDD logger) and EXP-10 use only our own code on a flash cart and our own CD-R. The residue is Mode-2-only behaviour (boot ROM at `$000000`), which needs an FPGA host (not verified) because ROM replacement is out of scope (PRV-25).
+- Cumulative LA headline: 71/93 = 76.3% (lenient view: 80/93 = 86.0%).
+  - CPU behaviour has a vendor source (M68000 UM).
+  - Gate-array, PRG-RAM and Sub-reset behaviour, and CDD/CDC bring-up, are defined by emulator and SDK sources.
+- **Emulator target: feasible against the emulator models.**
+  - Prior art: an independently written 0BSD minimal boot ROM (`clownmdemu-mcd-boot`) runs in clownmdemu (area A §3). Its knowledge provenance is undeclared, so it may be studied for facts but not copied.
+  - The LA rows outside the headline are:
+    - the CDD frame rows CD-031, CD-034 and CD-035, disputed through X-09 (they agree with GX, but independence is unproven, and PRV-15 rates the protocol N);
+    - ROM-41, ROM-44 and ROM-63, disputed through X-21, X-11 and X-20;
+    - ROM-05, ROM-09, ROM-31, ROM-43, COM-14 and CD-030, which have a recorded conflict or UNCONFIRMED hardware behaviour;
+    - COM-86, which is a Cond blocker.
+  - None of these stops an emulator build that targets GX's behaviour. Each of them stops a hardware claim.
+- **Real hardware: conditional** on:
+  - G-6 (COM-86, init necessity);
+  - G-3 (CDD bring-up and INT4 timing, CD-030 / CD-039);
+  - G-7 (no measurements; TMSS, PRV-27).
+- **Process:** G-1 (Issue #17) blocks merging PR #16. The LA headline does not depend on excluded material: the provenance-clean view keeps all 80 lenient LA items, and the drop to 71 comes only from disputes.
+- **How far legal independent experiments close it:** almost entirely.
+  - These use only our own code on a flash cart and our own CD-R: E-1 / X-1 / EXP-01 (Mode-1 probe), X-2 (init necessity), area D experiment 2 (CDD logger) and EXP-10.
+  - What remains is Mode-2-only behaviour (boot ROM at `$000000`). It needs an FPGA host (not verified), because ROM replacement is out of scope (PRV-25).
 
-### B) Is the spec sufficient to boot our own CD program? **条件付き可能 (conditional)**
+### B) Is the spec sufficient to boot our own CD program? **条件付き可能 (conditional) only for B1 (own-ABI program); B2 (MegaDev-class homebrew) 現時点では困難**
 
-- Cumulative LB rate 192/228 = 84.2% (headline), but 151/228 = 66.2% excluding manual/RE-derived items, and 91/228 = 39.9% counting only unconditional Y. In area C the provenance-clean LB subset is 3/38.
-- **B1, a program written for our own BIOS ABI** (our SDK, our boot header handling, our Word RAM hand-off): feasible in emulators. Disc format and boot header (CD-001…CD-011, API-70, PRV-10) are defined; IP/SP loading is our design (CD-115, CD-132). Conditional on G-3 (CDD lineage; on real hardware, measurement) and G-5 (a written OQ-8 policy that our BIOS performs no security check).
-- **B2, MegaDev-class homebrew compatibility:** depends on G-2 (X-04). Areas D and E mark the Sub API as an LB blocker; area C marks the same items Cond and non-blocking. Both positions are kept. Also G-4 (COM-52, Word RAM at entry) and G-11 only if homebrew polls `$5E80`.
-- **How far legal independent experiments close it:** B1 almost completely (EXP-02 / EXP-03 Mode-1 harnesses, synthetic disc suite). B2 partly: the caller census E1(a) on public homebrew yields interface facts with no Sega code involved; semantics and exact ABI need E2 / EXP-04, which use the console's own BIOS (LEGAL-REVIEW), or a #17 / OQ-7 decision.
+Area C defines LB as "MegaDev-class" homebrew (`coverage/bios-api.md` §1). The verdict is therefore split, and the conditional verdict applies **only to B1**.
+
+- Cumulative LB headline: 139/228 = 61.0%.
+  - Lenient view: 192/228 = 84.2%.
+  - Provenance-clean only: 151/228 = 66.2%.
+  - Area C's headline LB is 2/38.
+- **B1, a program written for our own BIOS ABI** (our SDK, our boot header handling, our Word RAM hand-off): **条件付き可能**, in emulators.
+  - Defined: the disc format and boot header (CD-001…CD-011; API-70; PRV-10, now Cond).
+  - Our own design: IP/SP loading (CD-115, CD-132).
+  - Condition G-3: the CDD protocol is an emulator model only, its independence is unproven, and there is no measurement. PRV-15 marks disc reading N with Blocker Y at LB.
+  - Condition G-5: a written OQ-8 policy that our BIOS performs no security check.
+- **B2, MegaDev-class homebrew compatibility (area C's LB definition): 現時点では困難 (currently difficult)**, pending Issue #17 / OQ-7 or a clean-room observation route.
+  - It depends on G-2 (X-04). Areas D and E mark the Sub API as an LB blocker; area C marks the same items Cond and non-blocking. Both positions are kept, and the rate counts these items as disputed.
+  - In the sources examined, no listing of the Sub-BIOS API was found whose origin is something other than the excluded manual, RE, or an undeclared method.
+  - It also depends on G-4 (COM-52, Word RAM at entry), and on G-11 if homebrew polls `$5E80`.
+- **How far legal independent experiments close it:**
+  - B1: almost completely, through the EXP-02 / EXP-03 Mode-1 harnesses and the synthetic disc suite.
+  - B2: partly. The caller census E1(a) on public homebrew yields interface facts with no Sega code involved. The semantics and exact ABI need either E2 / EXP-04, which use the console's own BIOS (LEGAL-REVIEW), or a #17 / OQ-7 decision.
 
 ### C) Is the spec sufficient for a commercial-game-compatible BIOS? **現時点では困難 (currently difficult)**
 
-- Cumulative LC rate 286/406 = 70.4% (headline), 210/406 = 51.7% excluding manual/RE-derived items, 111/406 = 27.3% unconditional Y. The rate overstates readiness: the undefined items are the ones every retail disc touches.
-- Depends on G-8 (security block, CD-131 / PRV-07), G-9 (`$280` library, OQ-7), G-10 (BRAM format), G-11 (CD status and services), G-12 (user-call contract), G-13 (entry state), G-14 (timing), G-15, G-16, G-17, plus all of A and B.
-- Not found in the sources examined: the on-media BRAM directory/allocation/protect format (ROM-90, API-60); the Main-side comm-flag / Sub-proxy protocol (API-92, COM-35: "not well understood" even in the RE source); the full `CDBSTAT` field layout (API-23, CD-081); comm state at IP/SP entry (COM-36); boot-time budget (CD-121); disc-change and lid-open status sequences (CD-051, CD-054, CD-143).
-- **How far legal independent experiments close it:** partly. Own-code, own-media experiments can close timing (E5, EXP-10), latch semantics (X-3), Mode-1 discoverability (E-3, X-10), and with light LEGAL-REVIEW the BRAM format (E-4, E3, EXP-08: reading data written by the original BIOS, not code). The security-block dependencies, the `$280` library, the user-call contract and the entry state need observation of the original BIOS or of retail discs (EXP-09, X-9, E4, CR-A / CR-D). Those require a maintainer decision and LEGAL-REVIEW (PRV-26, PRV-34, OQ-7, OQ-8) before any work starts, and a two-team process that is hard to sustain in a volunteer project (area E §6).
+- Cumulative LC headline: 193/406 = 47.5% (lenient view: 285/406 = 70.2%). Even the headline overstates readiness, because the undefined items are the ones every retail disc touches.
+- It depends on:
+  - G-8 (security block, CD-131 / PRV-07);
+  - G-9 (`$280` library, OQ-7);
+  - G-10 (BRAM format);
+  - G-11 (CD status and services);
+  - G-12 (user-call contract);
+  - G-13 (entry state);
+  - G-14 (timing);
+  - G-15, G-16, G-17 and G-18;
+  - all of A and B2.
+- Not found in the sources examined:
+  - the on-media BRAM directory, allocation and protect format (ROM-90, API-60);
+  - the Main-side comm-flag / Sub-proxy protocol (API-92, COM-35), which is "not well understood" even in the RE source;
+  - the full `CDBSTAT` field layout (API-23, CD-081);
+  - the comm state at IP/SP entry (COM-36);
+  - the boot-time budget (CD-121);
+  - the disc-change and lid-open status sequences (CD-051, CD-054, CD-143).
+- **How far legal independent experiments close it:** partly.
+  - Own code and own media can close timing (E5, EXP-10), latch semantics (X-3), the CDD checksum reaction (area D experiment 2) and Mode-1 discoverability (E-3, X-10).
+  - With light LEGAL-REVIEW, the BRAM format can be closed too (E-4, E3, EXP-08). These experiments read data written by the original BIOS, not code.
+  - The security-block dependencies, the `$280` library, the user-call contract and the entry state need observation of the original BIOS or of retail discs (EXP-09, X-9, E4, CR-A / CR-D).
+    - These require a maintainer decision and LEGAL-REVIEW before any work starts (PRV-26, PRV-34, OQ-7, OQ-8).
+    - They also need a two-team process that is hard to sustain in a volunteer project (area E §6).
 
 ### Sensitivity note (not the verdict): if the maintainer permits paraphrased citation of CONFIDENTIAL-marked manuals
 
-This is a separate what-if. **No audit agent read the excluded pages for this audit**; what they cover is inferred only from table-of-contents titles recorded as leads in the area files (megadrive.org TOC). It may be wrong.
+This is a separate what-if. **No audit agent read the excluded pages for this audit.** What they cover is inferred only from the table-of-contents titles that the area files record as leads (megadrive.org TOC), so it may be wrong.
 
 - **A:** class unchanged (条件付き可能). S-HW §4-1 p.56 appears to describe the forced-reset pattern (COM-86) and the power-on register values. That would settle G-6 on paper, but hardware measurement (G-7) is still owed before any release claim.
-- **B:** would likely become **実装可能** in emulator scope. S-BIOS (call list pp.7–8, reference pp.11–29, bootstrap pp.30–32, jump table and user calls pp.33–35) appears to cover G-2 / X-04, the Sub stack and system area (ROM-45…ROM-47), and the user-call contract (COM-32 / COM-33). S-HW §3-6 pp.31–33 appears to cover the CDD protocol (G-3, on paper only). S-FMT System ID pp.18–19 appears to cover CD-020 / PRV-11.
-- **C:** stays **現時点では困難**. The Main `$280` library is known only from RE; its official documents (`ROM_UTIL.DOC`, `MAINENT.I`) were not found in the sources examined. The security-block dependencies, retail timing, region legal questions (OQ-8) and the observation basis (PRV-26 / PRV-34) are not addressed by the manuals as far as their TOCs show. S-BIOS "Back-up RAM" pp.38–45 may or may not include the on-media format (G-10): unknown.
+- **B1:** unchanged (条件付き可能).
+- **B2:** would likely become **実装可能** in emulator scope.
+  - S-BIOS appears to cover G-2 / X-04, the Sub stack and system area (ROM-45…ROM-47), and the user-call contract (COM-32 / COM-33). The relevant pages are the call list (pp.7–8), the reference (pp.11–29), bootstrap (pp.30–32), and the jump table and user calls (pp.33–35).
+  - S-HW §3-6 pp.31–33 appears to cover the CDD protocol (G-3, on paper only).
+  - S-FMT System ID pp.18–19 appears to cover CD-020 / PRV-11.
+  - In rate terms, the 76 rows demoted by provenance (§4) would return to the provenance-clean view. Disputes still apply until the disagreeing rows are re-rated.
+- **C:** stays **現時点では困難**.
+  - For the Main `$280` library, only RE-derived material was found in the sources examined. Its official documents (`ROM_UTIL.DOC`, `MAINENT.I`) were not found.
+  - The security-block dependencies, retail timing, the region legal questions (OQ-8) and the observation basis (PRV-26 / PRV-34) are not addressed by the manuals as far as their TOCs show.
+  - S-BIOS "Back-up RAM" pp.38–45 may or may not include the on-media format (G-10): unknown.
 
 ## 3. Cross-area overlaps and disagreements
 
-The same behaviour sometimes appears in several area files. Every row is kept as written by its area. Rows in a group carry the tag `[X-nn]` in the ID cell of the matrix (§7). The column that disagrees is named; nothing was merged or reworded.
+The same behaviour sometimes appears in several area files. Every row is kept as written by its area. Rows in a group carry the tag `[X-nn]` in the ID cell of the matrix (§7). The column that disagrees is named; nothing was merged or reworded. **This table is data:** `tools/audit/coverage_rate.py` reads the Items column to build the tags and to apply rule 6 of §4 (a row is undisputed only if every row of each of its groups is defined).
 
 | Tag | Topic | Items | What disagrees |
 | --- | --- | --- | --- |
@@ -107,7 +189,7 @@ The same behaviour sometimes appears in several area files. Every row is kept as
 | X-06 | Security block and region check | ROM-101, API-71, CD-130, CD-131, CD-132, CD-133, PRV-05, PRV-06, PRV-07 | **Level**: API-71 is LB with Blocker Y (policy, OQ-8); CD-132 (LB) says our own discs boot without Sega code: Y, not a blocker; ROM-101 / CD-130 / PRV-05 put the check at LC. |
 | X-07 | BRAM on-media format | ROM-90, API-60, PRV-13 | **Implementable**: ROM-90 / API-60 **N**; PRV-13 **Cond**. **Blocker**: ROM-90 / API-60 Y; PRV-13 N, "Y only for save interoperability". |
 | X-08 | Main `$280` library, work area, comm-flag protocol | ROM-11, ROM-71, COM-35, COM-82, API-82, API-83, API-92, API-94, PRV-03 | Agree on blocker (Y, OQ-7). **Names**: MegaDev and the 0BSD boot ROM name the `$280` system entries differently (API-83). API-88 / API-90 are Cond (formats or own font), the rest N. |
-| X-09 | CDD protocol: second independent lineage? | CD-031, CD-034, CD-035, PRV-15, PRV-19 | **Implementable / blocker**: area D counts GX and BlastEm as two lineages (Cond, LA, not blocking); PRV-15 says only one lineage was examined (GX ≈ PicoDrive), **N**, Blocker Y (LB). BlastEm was read only as `cdd_mcu.h` enum names through WebFetch, licence unverified. |
+| X-09 | CDD protocol: second independent lineage? | CD-031, CD-034, CD-035, PRV-15, PRV-19 | **Implementable / blocker**: area D rates the CDD frame Cond, LA, not blocking, because GX and BlastEm agree (its wording "two independent lineages" was corrected during integration review to "agree; independence from GX unproven"); PRV-15 says only one lineage was examined (GX ≈ PicoDrive), **N**, Blocker Y (LB). BlastEm was read only as `cdd_mcu.h` enum names through WebFetch, with no licence or copyright text in the file. |
 | X-10 | CDC datasheet | CD-060, PRV-16 | **Existence**: area D located an LC8950/LC8951 design-manual scan (LCDM, provenance unverified; a Sega-marked copy is excluded); PRV-16 says the chip datasheet was not found in the sources it examined. Both Cond. |
 | X-11 | Gate-array init / forced reset | ROM-44, COM-86 | **Blocker**: COM-86 Y (LA on real hardware); ROM-44 N (Cond: "which steps are mandatory"). |
 | X-12 | Sub user-call contract | ROM-49, COM-32, COM-33, API-07, API-14, CD-116 | **Blocker**: COM-32 / COM-33 Y (LC); the others N. **Level**: ROM-49 LC; the others LB. |
@@ -118,82 +200,135 @@ The same behaviour sometimes appears in several area files. Every row is kept as
 | X-17 | Contested CD function codes (OQ-12) | API-30, API-34, CD-091 | **Blocker**: CD-091 Y (LC); API-34 N unless E1 finds callers. API-30 says clownmdemu's HLE resolves `$11-$13` (Cond); CD-091 says the authoritative list is only in excluded S-BIOS (N). |
 | X-18 | `_CDBOOT` services | API-05, API-65, API-66, CD-089 | **Implementable**: API-65 Cond; API-66 / CD-089 N. **Blocker**: CD-089 Y; API-05 / API-65 / API-66 N. |
 | X-19 | Drive / seek timing | API-45, CD-037, CD-107 | **Level**: CD-037 LB (N for LB, Y for LC); API-45 / CD-107 LC, Y. Agree it is unmeasured. |
-| X-20 | PRG-RAM write-protect scope | ROM-43, ROM-63, COM-09 | **Facts**: ROM-43 says emulators disagree on whether WP blocks Main writes (clownmdemu: yes); COM-09 is Y with "emulators: no" for Main or CDC-DMA writes. |
-| X-21 | SRES=0 forces SBRQ=1 | ROM-41, COM-05 | **Level**: ROM-41 LA (part of the handshake, Cond); COM-05 LC, emulators disagree (PicoDrive has the rule commented out). |
+| X-20 | PRG-RAM write-protect scope | ROM-43, ROM-63, COM-09 | **Facts**: ROM-43 says emulators disagree on whether WP blocks Main writes; clownmdemu `source/bus-main-m68k.c:972` blocks Main writes below WP×512. COM-09 is Y for Sub writes; its "emulators: no" for Main writes was corrected during integration review (GX and PicoDrive: no; clownmdemu: yes). |
+| X-21 | SRES=0 forces SBRQ=1 | ROM-41, COM-05 | **Level**: ROM-41 LA (part of the handshake, Cond); COM-05 LC, emulators disagree. ROM-41 cited PicoDrive `memory.c:187` as support, but the rule is commented out there (corrected during integration review). |
 | X-22 | Gate-array power-on state | ROM-40, COM-04 | **Implementable**: ROM-40 Cond; COM-04 Y. Same sources. |
 
 Source-level disagreements (no item row):
 
 - **S-1, replacement boot ROM source.** Areas A and B cite `Clownacy/clownmdemu-mcd-boot@ebdf03c` (2025-09-07); area C cites `kirisamemofo/clownmdemu-mcd-boot@6025457` (2026-01-27) for the same project, so line numbers may differ. Area D and area E (L-16) record the clownmdemu boot-ROM blob as having no source in the examined repository; areas A–C found the source repository. The provenance of its interface knowledge is undeclared in all accounts.
-- **S-2, Genesis Plus GX revision.** Areas A, B, C and D cite the fork `87dd8b8` (the PR #15 harness pin); PR #16 cites upstream `49c5847`; area E cloned both and its `gpgx/…` paths do not say which. Line numbers in `scd.c`, `mem68k.c`, `cdc.c`, `cdd.c` differ between them (OQ-20).
+- **S-2, Genesis Plus GX revision.** Areas A, B, C and D cite the fork `87dd8b8` (the PR #15 harness pin). PR #16 and **area E** cite upstream `49c5847`: area E's `gpgx/…` line numbers match upstream, not the fork (e.g. PRV-10's `cdd.c:1181` is `:1168` in the fork). Area E now states this (corrected during integration review). Line numbers in `scd.c`, `mem68k.c`, `cdc.c`, `cdd.c` differ between the trees (OQ-20).
 - **S-3, independence of "emulators agree".** Areas A and B count GX + PicoDrive agreement as support for many items; PRV-19 shows PicoDrive's CDD, CDC and graphics code is GX code. For those subsystems the agreement is not two independent confirmations.
 
 ## 4. Coverage rate
 
 ### Definition
 
-**Coverage rate = (items for which a verifiable spec is defined from non-excluded sources) / (items enumerated).** Levels are cumulative: LA uses LA items, LB uses LA + LB items, LC uses all items. A row tagged "LB/LC" counts at LB. Each row of §7 is one item, so a behaviour that several areas enumerate (§3) counts once per area.
+**Coverage rate = (items for which a verifiable spec is defined from non-excluded sources) / (items enumerated).**
 
-An item counts as **defined** only when all of these hold (applied mechanically by `tools/audit/coverage_rate.py`):
+- Levels are cumulative: LA uses LA items, LB uses LA + LB items, LC uses all items.
+- A row tagged "LB/LC" counts at LB.
+- Each row of §7 is one item, so a behaviour that several areas enumerate (§3) counts once per area.
+
+The **headline** counts an item only when all six rules hold. `tools/audit/coverage_rate.py` applies them mechanically:
 
 1. The "Implementable from public material only?" cell starts with **Y** or **Cond**.
-2. None of the cells "Existing material", "Exact reference", "Provenance" and "Implementable" records an unresolved conflict (`UNCONFIRMED`, `conflict`, `disagree`, `contradict`).
-3. If the item is **Cond**, or its existing material is not plainly **Y** (partial or N), then "Coverable by own test?" starts with **Y**. This is the condition that the area file explains how acceptance is verifiable.
-4. A **Cond** item whose Blocker cell starts with **Y** is not counted at any level: its condition is itself unresolved.
+2. None of the cells "Existing material", "Exact reference", "Provenance" or "Implementable" records an unresolved conflict (`UNCONFIRMED`, `conflict`, `disagree`, `contradict`).
+3. If the item is **Cond**, or its existing material is not plainly **Y** (partial or N), then "Coverable by own test?" must start with **Y**. This is how the area file shows that acceptance is verifiable.
+4. A **Cond** item that is blocking is not counted. Blocking means the Blocker cell starts with **Y**, or the item inherits a blocker ("via API-60").
+5. **Provenance-clean.** The provenance cell does not show that the row's basis derives from the excluded manuals, from RE, or from an undeclared-origin source.
+   - "as above" / "as <ID>" references are expanded before the check.
+   - Keywords that fail the check: `P-OFF`, `P-RE`, `P-UNK`, `RE`, "RE-derived", "reverse engineer", "disassembly", "official BIOS manual", "derived from L-0…", "derive from XS", "second-hand from XS", "quotes official".
+   - The Implementable cell must also not say that the item rests on excluded material ("only via an excluded", "rests on an excluded", "origin is the excluded", "attributes them to the excluded").
+   - Every keyword hit was checked by hand:
+     - **Newly matched by the patterns added during integration review, and confirmed as derived:**
+       - ROM-67: MegaDev quotes official text.
+       - ROM-69: inherits ROM-67's provenance through "as above". Its other basis is a clownmdemu comment saying "what Sega's BIOS does", which PRV-32 treats as a lead only.
+       - API-75 and API-95: P-UNK.
+       - CD-003: the 2 s pregap rule is second-hand from excluded S-FMT.
+       - CD-023: the placement is confirmed only through an excluded document.
+     - **Checked and judged not derived:** COM-56, COM-65, COM-75, COM-78, CD-022, CD-073, PRV-14 and PRV-16. In these rows "official" or "excluded" refers to the M68000 vendor manual, or to the official manual not being used; the basis is emulator source. The narrowed patterns do not match them.
+     - **Overridden:** keyword hits whose hand-check found an independent non-excluded basis. The script reads this table:
 
-Two stricter views are reported next to the headline:
+   | Override | Item | Independent basis (why the keyword hit is not the only basis) |
+   | --- | --- | --- |
+   | H-01 | ROM-28 | "as above" chains to ROM-26's MegaDev note, but the row cites GX, PicoDrive and clownmdemu source, which agree |
+   | H-02 | ROM-30 | "as above" chain; the basis is M68000 UM §6.3.1 (vendor manual) |
+   | H-03 | COM-83 | "as above" chain; the clock and timer base come from GX `scd.h` and PicoDrive `mcd.c` |
+   | H-04 | CD-008 | MegaDev (RE caveat) gives disc-type codes, but the requirement is our own "do not hang" rule, classified from the TOC data flag (GX) |
+   | H-05 | PRV-32 | A process rule (treat emulator claims about Sega's BIOS as leads); it needs no source fact |
 
-- **Provenance-clean**: defined, and the provenance cell (with "as above" / "as <ID>" references expanded) does not record origin in the official manuals or in reverse engineering (`P-OFF`, `P-RE`, `RE`, `disassembly`, "official BIOS manual", "derived from L-0…"). This is keyword-based and therefore an **upper bound** of the clean subset: cells such as "as cited there", and emulator sources whose own origin is unknown, are not detected.
-- **Y-only**: defined and Implementable = Y (no condition at all).
+6. **Undisputed.** If the item belongs to cross-area groups (§3), every row of each of those groups satisfies rules 1–4. This is the reviewer's conservative reading: a row is not counted while another area rates the same behaviour N or blocking.
 
-None of the three counts hardware-verified behaviour: there are no measurements in this project (PRV-22).
+The **secondary views** relax rule 5, rule 6, or both, and are kept for comparison only. The lenient view (rules 1–4 only) means "defined by any cited source, including manual/RE-derived". It must not be quoted as the coverage rate.
+
+Limits that apply to every view:
+
+- No view counts hardware-verified behaviour, because there are no measurements in this project (PRV-22).
+- The provenance check is keyword-based plus the hand-check above. A row can still be counted when its origin is unstated in a way the patterns cannot see, for example an emulator source whose own origin is unknown (PRV-32 treats such sources as leads).
 
 ### Computed rates
 
 Generated by `python tools/audit/coverage_rate.py --write`; do not edit by hand.
 
 <!-- BEGIN GENERATED: rates -->
-**Headline: defined**
+**Headline: defined, provenance-clean and undisputed**
 
 | Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |
 | --- | --- | --- | --- |
-| All areas | 80/93 = 86.0% | 192/228 = 84.2% | 286/406 = 70.4% |
+| All areas | 71/93 = 76.3% | 139/228 = 61.0% | 193/406 = 47.5% |
+| A rom-cpu-memmap | 31/38 = 81.6% | 45/59 = 76.3% | 54/87 = 62.1% |
+| B comm-wordram-irq | 19/23 = 82.6% | 38/51 = 74.5% | 60/89 = 67.4% |
+| C bios-api | 0/0: not computable | 2/38 = 5.3% | 2/88 = 2.3% |
+| D cd-boot | 14/19 = 73.7% | 39/55 = 70.9% | 60/105 = 57.1% |
+| E provenance-experiments | 7/13 = 53.8% | 15/25 = 60.0% | 17/37 = 45.9% |
+
+**Secondary: defined and provenance-clean (cross-area disputes ignored)**
+
+| Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |
+| --- | --- | --- | --- |
+| All areas | 80/93 = 86.0% | 151/228 = 66.2% | 209/406 = 51.5% |
+| A rom-cpu-memmap | 34/38 = 89.5% | 48/59 = 81.4% | 58/87 = 66.7% |
+| B comm-wordram-irq | 20/23 = 87.0% | 40/51 = 78.4% | 62/89 = 69.7% |
+| C bios-api | 0/0: not computable | 2/38 = 5.3% | 3/88 = 3.4% |
+| D cd-boot | 17/19 = 89.5% | 44/55 = 80.0% | 66/105 = 62.9% |
+| E provenance-experiments | 9/13 = 69.2% | 17/25 = 68.0% | 20/37 = 54.1% |
+
+**Secondary: defined and undisputed (manual/RE-derived sources allowed)**
+
+| Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |
+| --- | --- | --- | --- |
+| All areas | 71/93 = 76.3% | 172/228 = 75.4% | 257/406 = 63.3% |
+| A rom-cpu-memmap | 31/38 = 81.6% | 50/59 = 84.7% | 61/87 = 70.1% |
+| B comm-wordram-irq | 19/23 = 82.6% | 41/51 = 80.4% | 63/89 = 70.8% |
+| C bios-api | 0/0: not computable | 23/38 = 60.5% | 44/88 = 50.0% |
+| D cd-boot | 14/19 = 73.7% | 42/55 = 76.4% | 71/105 = 67.6% |
+| E provenance-experiments | 7/13 = 53.8% | 16/25 = 64.0% | 18/37 = 48.6% |
+
+**Secondary: defined by any cited source, including manual/RE-derived (lenient)**
+
+| Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |
+| --- | --- | --- | --- |
+| All areas | 80/93 = 86.0% | 192/228 = 84.2% | 285/406 = 70.2% |
 | A rom-cpu-memmap | 34/38 = 89.5% | 53/59 = 89.8% | 65/87 = 74.7% |
 | B comm-wordram-irq | 20/23 = 87.0% | 43/51 = 84.3% | 65/89 = 73.0% |
-| C bios-api | 0/0: not computable | 31/38 = 81.6% | 57/88 = 64.8% |
+| C bios-api | 0/0: not computable | 31/38 = 81.6% | 56/88 = 63.6% |
 | D cd-boot | 17/19 = 89.5% | 47/55 = 85.5% | 77/105 = 73.3% |
 | E provenance-experiments | 9/13 = 69.2% | 18/25 = 72.0% | 22/37 = 59.5% |
 
-**Defined and provenance cell not manual/RE-derived**
+**Secondary: headline items whose Implementable cell is Y**
 
 | Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |
 | --- | --- | --- | --- |
-| All areas | 78/93 = 83.9% | 151/228 = 66.2% | 210/406 = 51.7% |
-| A rom-cpu-memmap | 33/38 = 86.8% | 48/59 = 81.4% | 58/87 = 66.7% |
-| B comm-wordram-irq | 20/23 = 87.0% | 39/51 = 76.5% | 61/89 = 68.5% |
-| C bios-api | 0/0: not computable | 3/38 = 7.9% | 5/88 = 5.7% |
-| D cd-boot | 16/19 = 84.2% | 44/55 = 80.0% | 67/105 = 63.8% |
-| E provenance-experiments | 9/13 = 69.2% | 17/25 = 68.0% | 19/37 = 51.4% |
-
-**Defined and Implementable = Y**
-
-| Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |
-| --- | --- | --- | --- |
-| All areas | 51/93 = 54.8% | 91/228 = 39.9% | 111/406 = 27.3% |
+| All areas | 49/93 = 52.7% | 83/228 = 36.4% | 102/406 = 25.1% |
 | A rom-cpu-memmap | 21/38 = 55.3% | 24/59 = 40.7% | 27/87 = 31.0% |
-| B comm-wordram-irq | 19/23 = 82.6% | 38/51 = 74.5% | 48/89 = 53.9% |
-| C bios-api | 0/0: not computable | 5/38 = 13.2% | 6/88 = 6.8% |
-| D cd-boot | 5/19 = 26.3% | 13/55 = 23.6% | 18/105 = 17.1% |
-| E provenance-experiments | 6/13 = 46.2% | 11/25 = 44.0% | 12/37 = 32.4% |
+| B comm-wordram-irq | 18/23 = 78.3% | 36/51 = 70.6% | 46/89 = 51.7% |
+| C bios-api | 0/0: not computable | 2/38 = 5.3% | 2/88 = 2.3% |
+| D cd-boot | 5/19 = 26.3% | 12/55 = 21.8% | 17/105 = 16.2% |
+| E provenance-experiments | 5/13 = 38.5% | 9/25 = 36.0% | 10/37 = 27.0% |
 
 Items enumerated by minimum level: LA 93, LB 135, LC 178, total 406.
 
-Items marked Y or Cond by their area file but NOT counted as defined by the rule (48): ROM-03, ROM-05, ROM-09, ROM-10, ROM-29, ROM-31, ROM-38, ROM-43, ROM-47, ROM-49, ROM-65, ROM-68, ROM-86, ROM-102, COM-05, COM-13, COM-14, COM-17, COM-32, COM-33, COM-41, COM-47, COM-52, COM-58, COM-60, COM-80, COM-81, COM-86, API-13, API-23, API-26, API-30, API-40, API-71, API-72, API-73, API-88, API-90, API-98, CD-030, CD-065, CD-080, CD-083, CD-140, PRV-02, PRV-05, PRV-12, PRV-21.
+Demoted by provenance (defined, but manual/RE/undeclared-origin) (76): ROM-26, ROM-27, ROM-45, ROM-46, ROM-67, ROM-69, ROM-94, COM-31, COM-76, COM-79, API-01, API-02, API-03, API-04, API-05, API-06, API-07, API-08, API-09, API-10, API-12, API-14, API-15, API-16, API-17, API-20, API-21, API-22, API-24, API-25, API-27, API-28, API-29, API-31, API-32, API-33, API-35, API-36, API-37, API-38, API-39, API-42, API-43, API-44, API-46, API-50, API-51, API-52, API-53, API-54, API-55, API-57, API-58, API-61, API-62, API-65, API-74, API-75, API-76, API-80, API-81, API-95, API-96, CD-003, CD-021, CD-023, CD-028, CD-029, CD-055, CD-082, CD-084, CD-085, CD-086, CD-087, PRV-04, PRV-13.
+
+Demoted by cross-area dispute (defined, but another row of its X-group is not) (28): ROM-41, ROM-44, ROM-63, ROM-70, COM-09, COM-63, API-05, API-06, API-07, API-10, API-14, API-15, API-16, API-32, API-37, API-65, API-76, API-77, CD-031, CD-034, CD-035, CD-116, CD-132, CD-133, PRV-06, PRV-13, PRV-19, PRV-27.
+
+Marked Y or Cond by the area file but not defined by rules 1-4 (49): ROM-03, ROM-05, ROM-09, ROM-10, ROM-29, ROM-31, ROM-38, ROM-43, ROM-47, ROM-49, ROM-65, ROM-68, ROM-86, ROM-102, COM-05, COM-13, COM-14, COM-17, COM-32, COM-33, COM-41, COM-47, COM-52, COM-58, COM-60, COM-80, COM-81, COM-86, API-13, API-23, API-26, API-30, API-40, API-56, API-71, API-72, API-73, API-88, API-90, API-98, CD-030, CD-065, CD-080, CD-083, CD-140, PRV-02, PRV-05, PRV-12, PRV-21.
 <!-- END GENERATED: rates -->
 
 ### Comparison with the area files' own counts
 
-Each area used a slightly different rule, so its self-reported "spec defined" numbers (non-cumulative, by minimum level) are higher or lower than the uniform rule above:
+Each area used a slightly different rule. Its self-reported "spec defined" numbers (non-cumulative, by minimum level) therefore differ from the uniform rule above:
 
 | Area | Self-reported LA / LB / LC (defined / enumerated) | Area rule |
 | --- | --- | --- |
@@ -203,39 +338,54 @@ Each area used a slightly different rule, so its self-reported "spec defined" nu
 | D | 18/19, 33/36, 31/50 | Y or Cond |
 | E | 7/13, 6/12, 2/12 | judgement; emulator-scoped claims count only for emulator-scoped or process items |
 
-The uniform rule is stricter than B, C and D (it drops conflicts, untestable Cond items and Cond blockers) and looser than E's judgement for some process items.
+None of the area rules considers provenance taint or cross-area disputes, so the uniform headline is lower than every area's self-reported figure.
 
 ### Enumeration caveats (read before quoting any rate)
 
-- **Area C, LA: not computable.** Area C enumerated no LA items (it argues a minimal boot exposes no API surface).
-- **Not enumerated in any area, so not computable:** VDP / Z80 / PSG / controller initialisation beyond ROM-36 (deferred by area A to a "VDP/IO area" that was not assigned); PCM (RF5C164) initialisation and behaviour (only touched by ROM-44, ROM-85, CD-072, PRV-33); the BIOS's own user interface (CD player, BRAM manager, control panel; only API-96 and CD-119); generic Mega Drive behaviour such as the TMSS details and the `$A10001` version register (ROM-31, ROM-34, ROM-35 rely on emulator/SDK statements); Mega-CD + 32X, LaserActive, Wondermega, X'Eye and CDX variants (listed as not investigated by several areas).
-- **Granularity differs.** Area C groups several function codes per row; area D splits drive behaviour finely. Rows are weighted equally, so the "All areas" figures are artifacts of how each area enumerated. The denominators are a lower bound of the true number of required behaviours, and the rates are **not** a measure of total coverage.
-- **Overlaps count more than once** (§3), for example CD-117, COM-52, ROM-65 and API-72 describe related entry-state questions.
-- A high rate does not mean the remaining items are minor: in LC the undefined items are concentrated where every retail disc depends on them (§2 C).
+- **Area C, LA: not computable.** Area C enumerated no LA items. It argues that a minimal boot exposes no API surface.
+- **Not enumerated in any area, so not computable:**
+  - VDP / Z80 / PSG / controller initialisation beyond ROM-36. Area A deferred this to a "VDP/IO area" that was not assigned.
+  - PCM (RF5C164) initialisation and behaviour. Only ROM-44, ROM-85, CD-072 and PRV-33 touch it.
+  - The BIOS's own user interface (CD player, BRAM manager, control panel). Only API-96 and CD-119 touch it.
+  - Generic Mega Drive behaviour such as the TMSS details and the `$A10001` version register. ROM-31, ROM-34 and ROM-35 rely on emulator/SDK statements.
+  - The Mega-CD + 32X, LaserActive, Wondermega, X'Eye and CDX variants, which several areas list as not investigated.
+- **Granularity differs.** Area C groups several function codes per row, while area D splits drive behaviour finely. Every row has equal weight, so the "All areas" figures are artifacts of how each area enumerated. The denominators are a lower bound of the true number of required behaviours, and the rates are **not** a measure of total coverage.
+- **Overlaps count more than once** (§3). For example, CD-117, COM-52, ROM-65 and API-72 describe related entry-state questions.
+- **X-group membership may be incomplete.** The independent review could not confirm that every overlap is tagged. Rule 6 does not cover untagged overlaps.
+- A high rate does not mean the remaining items are minor. In LC the undefined items are concentrated where every retail disc depends on them (§2 C).
 
 ## 5. Other gaps (not development-stopping)
 
-Items whose Implementable cell is **N** but which no area marks as a blocker: ROM-37, ROM-61, ROM-83, ROM-103, COM-19, COM-28, COM-29, COM-42, COM-77, COM-85, API-11 (LB), API-34, API-41, API-59, API-63, API-66, API-99, CD-024, CD-027, CD-037 (LB; blocker only "for LC"), CD-040 (LA), CD-042, CD-043, CD-051, CD-054, CD-074, CD-077, CD-088, CD-106, CD-120, CD-121, CD-141, CD-143, PRV-29, PRV-30, PRV-35 (LA; blocker only "for release"), PRV-36. All others are LC.
+These items are rated **N** in the Implementable cell, but no area marks them as a blocker:
 
-Notable among them:
+- LA: CD-040; PRV-35 (blocker only "for release").
+- LB: API-11; CD-037 (blocker only "for LC").
+- LC: ROM-37, ROM-61, ROM-83, ROM-103, COM-19, COM-28, COM-29, COM-42, COM-77, COM-85, API-34, API-41, API-59, API-63, API-66, API-99, CD-024, CD-027, CD-042, CD-043, CD-051, CD-054, CD-074, CD-077, CD-088, CD-106, CD-120, CD-121, CD-141, CD-143, PRV-29, PRV-30, PRV-36.
 
-- **CD-040 (LA)**: whether software must pace HOCK/CDCK nibble accesses. Every emulator uses a pure register model; not found in the sources examined. Closable by area D experiment 2.
-- **API-11 (LB)**: which BIOS calls are legal from interrupt / USERCALL2 context. Not found in the sources examined. Not blocking for homebrew that calls from USERCALL1; a robustness risk for LC.
-- The items that the area files mark Y or Cond but that the uniform rule does not count are listed at the end of the generated rate block (§4).
+Two blocking items are rated Cond and therefore appear in §1:
+
+- CD-033: Blocker "Y for LC robustness" (G-17).
+- API-56: Blocker "via API-60", inherited (G-10).
+
+Notable among the non-stopping gaps:
+
+- **CD-040 (LA)**: whether software must pace HOCK/CDCK nibble accesses. Every emulator uses a pure register model, and nothing on this was found in the sources examined. Area D experiment 2 could close it.
+- **API-11 (LB)**: which BIOS calls are legal from interrupt / USERCALL2 context. Not found in the sources examined. It does not block homebrew that calls from USERCALL1, but it is a robustness risk for LC.
+- The generated rate block (§4) lists every item demoted by provenance or by dispute, and every Y/Cond item that rules 1–4 do not count.
 
 ## 6. Sources examined (union of the area files) and access status
 
 | Source | Pin / status | Licence or terms | Used by |
 | --- | --- | --- | --- |
 | Motorola M68000 UM, <https://www.nxp.com/docs/en/reference-manual/MC68000UM.pdf> | SHA-256 `89b690b1…a18e1`; HTTP 200 with curl's default UA, 404 with a browser UA | Proprietary, cite only | A, B, E |
-| Genesis Plus GX fork, <https://github.com/mao2009/Genesis-Plus-GX> | `87dd8b8` | Non-commercial, cite only | A, B, C, D, E |
-| Genesis Plus GX upstream, <https://github.com/ekeeke/Genesis-Plus-GX> | `49c5847` | Non-commercial, cite only | E (and PR #16) |
+| Genesis Plus GX fork, <https://github.com/mao2009/Genesis-Plus-GX> | `87dd8b8` | Non-commercial, cite only | A, B, C, D |
+| Genesis Plus GX upstream, <https://github.com/ekeeke/Genesis-Plus-GX> | `49c5847` | Non-commercial, cite only | E (its `gpgx/…` line numbers; S-2) and PR #16 |
 | PicoDrive, <https://github.com/notaz/picodrive> | `26ecb2b` | Non-commercial (MAME-style), cite only; CDD/CDC/gfx are GX code | A–E |
 | clownmdemu-core fork, <https://github.com/mao2009/clownmdemu-core> | `15c6cba` | AGPL-3.0, cite only | A–E |
 | clownmdemu-mcd-boot, <https://github.com/Clownacy/clownmdemu-mcd-boot> / <https://github.com/kirisamemofo/clownmdemu-mcd-boot> | `ebdf03c` / `6025457` (S-1) | 0BSD; knowledge provenance undeclared | A, B, C |
 | Mode-1 library, <https://github.com/kirisamemofo/mega-cd> | `74aa087` | 0BSD | C |
 | MegaDev, <https://github.com/drojaazu/megadev> | `7a7246c` | MIT; partly RE; Sub side attributed to the official manual; `lib/security.c` excluded (Sega code) | A–E |
-| BlastEm `cdd_mcu.h`, <https://www.retrodev.com/repos/blastem/file/07ed42bd7b4c/cdd_mcu.h> | hg `07ed42bd7b4c`, WebFetch only | GPL-3.0 per `COPYING` (area E); file header not seen (area D) | D, E |
+| BlastEm `cdd_mcu.h`, <https://www.retrodev.com/repos/blastem/file/07ed42bd7b4c/cdd_mcu.h> | hg `07ed42bd7b4c`, WebFetch only; agrees with GX, independence unproven | GPL-3.0 per `COPYING` (area E); no licence text in the file (area D, review) | D, E |
 | ECMA-130, ECMA-119 | 2nd ed. 1996; ECMA-119 not pinned | Free public standards | D |
 | LC8950/LC8951 design manual scan (bitsavers mirror) | undated scan; markings not checked by a human | Provenance unverified | D |
 | MegaCD_MiSTer, <https://github.com/MiSTer-devel/MegaCD_MiSTer> | `a3a3da8`; `docs/mcd logs` not opened; hosts Sega-marked PDFs (excluded) | GPL-3.0 | D, E |
@@ -246,11 +396,26 @@ Notable among them:
 | I-RETROSIX, Sega Retro, Plutiedev | login wall; Anubis bot challenge; not read | n/a | E |
 | gendev / SpritesMind threads, krikzz mcd-verificator | not fetched / not obtained (known second-hand from emulator comments) | unknown | B, D |
 
-Not examined by any area (from the areas' "not investigated" lists): the content of the excluded manuals and Tech Bulletins; BlastEm, ares, jgenesis and MiSTer source code; the krikzz mcd-verificator test list; Kosinski / Nemesis / Enigma format documentation; LC89513K, LC7883 and RF5C164 datasheets; public game disassemblies (policy-sensitive); patents and FCC filings; per-model hardware variants; public Mode-1 homebrew such as MSU-MD drivers.
+Not examined by any area (from the areas' "not investigated" lists):
+
+- the content of the excluded manuals and Tech Bulletins;
+- BlastEm, ares, jgenesis and MiSTer source code;
+- the krikzz mcd-verificator test list;
+- Kosinski / Nemesis / Enigma format documentation;
+- LC89513K, LC7883 and RF5C164 datasheets;
+- public game disassemblies (policy-sensitive);
+- patents and FCC filings;
+- per-model hardware variants;
+- public Mode-1 homebrew such as the MSU-MD drivers.
 
 ## 7. Consolidated matrix
 
-All 406 rows of the five area files, verbatim and in area order. Only two mechanical edits were made: relative link targets were rebased from `coverage/` to this directory, and `[X-nn]` tags (§3) were appended to the ID cell. `python tools/audit/coverage_rate.py --check` fails if this table drifts from the area files. Abbreviations inside cells are defined in the source-register section of each area file.
+This table holds all 406 rows of the five area files, verbatim as corrected per §8, in area order. Only two mechanical edits were made:
+
+- relative link targets were rebased from `coverage/` to this directory;
+- `[X-nn]` tags (§3) were appended to the ID cell.
+
+`python tools/audit/coverage_rate.py --check` fails if this table drifts from the area files. Abbreviations inside cells are defined in the source-register section of each area file.
 
 <!-- BEGIN GENERATED: matrix -->
 | ID | Required behavior | Level | Existing material (Y/N/partial) | Exact reference URL + location | Provenance & usage terms | Implementable from public material only? (Y/Cond/N + why) | Specific missing information | Coverable by own test? | Verifiable in emulator only? | Real hardware needed? | Blocker? (Y/N + why) |
@@ -286,11 +451,11 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | ROM-37 | Effect of the 68000 `RESET` instruction on Mega-CD hardware (gate array, Sub CPU) | LC | N | M68K §5.5 p.5-29 (asserts RESET for 124 clocks; CPU itself not reset), §6.3.1 p.6-12 | vendor | N: Mega-CD `/RESET` wiring not in non-excluded sources | What `RESET` resets on Mega-CD | N | N | Y | N (the BIOS need not execute `RESET`) |
 | ROM-38 | Mega-CD side of a console soft reset (reset button): what is reset | LC | partial (UNCONFIRMED) | GPGX-F `core/cd_hw/scd.c:1867-1874` (TODO comment; communication registers kept) | emu | Cond | Full list of reset registers | Y (Mode-1 probe + reset button) | N | Y | N |
 | ROM-40 [X-22] | Power-on: Sub CPU held in reset with its bus requested (`$A12001`: SBRQ=1, SRES=0) | LA | partial (ESTIMATED) | GPGX-F `core/cd_hw/scd.c:1814-1816,1859-1862`. PICO `pico/cd/mcd.c:76-79` (comment "tested"). CLOWN `source/clownmdemu.c:99-100` | emu | Cond: three emulators agree | Hardware read-back (OQ-13) | Y (Mode-1 probe) | Y | Y | N |
-| ROM-41 [X-21] | SRES/SBRQ handshake: write, then poll the read-back until it latches. The Sub resets on an SRES 0→1 edge, and SRES=0 forces SBRQ to read 1 | LA | partial (ESTIMATED) | GPGX-F `core/mem68k.c:715-756` (comments "verified on real hardware" at :748, :752). PICO `pico/cd/memory.c:186-208` (comment "verified" :187). MCDBOOT `src/main/main.asm:75-97` | as above | Cond | Latch timing | Y | Y | Y | N |
+| ROM-41 [X-21] | SRES/SBRQ handshake: write, then poll the read-back until it latches. The Sub resets on an SRES 0→1 edge, and SRES=0 forces SBRQ to read 1 | LA | partial (ESTIMATED) | GPGX-F `core/mem68k.c:715-756` (comments "verified on real hardware" at :748, :752). PICO `pico/cd/memory.c:186-208` (the "verified" SRES=0 => SBRQ=1 rule at :186-187 is commented out, so PICO does not apply it; cf. COM-05) (corrected during integration review). MCDBOOT `src/main/main.asm:75-97` | as above | Cond | Latch timing | Y | Y | Y | N |
 | ROM-42 | Sub reset vectors come from PRG-RAM `$000000/$000004`, so the BIOS writes a Sub vector table and program to PRG-RAM before releasing SRES | LA | Y | M68K §6.3.1 p.6-11. GPGX-F `core/cd_hw/scd.c:1698-1699`. CLOWN `source/bus-sub-m68k.c:709-711`. MCDBOOT `src/main/main.asm:83-93`, `src/sub/header.asm:21-22` | as above | Y: CPU rule plus three consistent maps | — | Y | Y | N | N |
 | ROM-43 [X-20] | Clear PRG-RAM write protection before loading the Sub program; set it again afterwards | LA | partial (emulators disagree) | MCDBOOT `src/main/main.asm:83-89` (WP=0, then `$2A`). CLOWN `source/bus-main-m68k.c:972` (Main writes obey WP). GPGX-F `core/cd_hw/scd.c:160-182,1624-1645` (only Sub writes checked) | as above | Cond: clearing WP first is safe either way | Whether WP applies to Main-CPU writes | Y | Y | Y | N |
 | ROM-44 [X-11] | Sub hard-reset init: clear status/communication registers, reset peripherals (`$FF8001` bit 0), mask IRQs (`$FF8032`=0), set Word RAM mode, reset the stopwatch, init PCM | LA | partial | MCDBOOT `src/sub/main.asm:21-53` | 0BSD | Cond | Which steps are mandatory | Y | Y | N | N |
-| ROM-45 | Sub system area: `$5E80` common work, `$5EA0` BOOTSTAT, BIOS entries `$5F0A-$5F22`, USERCALL0-3 `$5F28-$5F3A`, SP header `$6000` | LB | partial (ESTIMATED) | MEGADEV `lib/sub/memmap.def.h:64-95`, `lib/sub/bios.def.h:50-127`. MCDBOOT `include/mcd_sub.inc:213-226`. excl: S-BIOS p.4 | Both SDKs say the values come from the official BIOS manual (excluded) | Cond: two public SDKs agree, but the ultimate origin is the excluded manual (Issue #17) | — | Y | Y | N | N |
+| ROM-45 | Sub system area: `$5E80` common work, `$5EA0` BOOTSTAT, BIOS entries `$5F0A-$5F22`, USERCALL0-3 `$5F28-$5F3A`, SP header `$6000` | LB | partial (ESTIMATED) | MEGADEV `lib/sub/memmap.def.h:64-95`, `lib/sub/bios.def.h:50-127`. MCDBOOT `include/mcd_sub.inc:213-226`. excl: S-BIOS p.4 | MegaDev says the values come from the official BIOS manual (excluded); MCDBOOT states no origin (corrected during integration review) | Cond: two public SDKs agree; MegaDev attributes them to the excluded manual (Issue #17) and MCDBOOT's origin is unstated (corrected during integration review) | — | Y | Y | N | N |
 | ROM-46 | Sub exception jump table `$5F40-$5FFF` of 6-byte `JMP` entries (address error `$5F40` … level 1 `$5F76` … level 7 `$5F9A`, TRAPs after) | LB | partial (ESTIMATED) | MEGADEV `lib/sub/memmap.def.h:64-95`. MCDBOOT `include/mcd_sub.inc:227-242` | as ROM-45 | Cond | — | Y | Y | N | N |
 | ROM-47 [X-14] | Sub stack location and size | LB | partial (conflict) | MCDBOOT `src/sub/variables.inc:23-24` (`$5D80-$5E80`). excl: S-BIOS p.4 (heap/stack `$5C00`) | as above | Cond | Stack depth that SPs expect | Y | Y | N | N |
 | ROM-48 | Sub IRQs enabled before user code (at least level 2 from Main and level 4 CDD) | LB | partial | MCDBOOT `src/sub/main.asm:56` | 0BSD | Cond | The original's full enable set | Y | Y | N | N |
@@ -350,7 +515,7 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | COM-06 | SBRQ ack 0 while Sub STOPped | LC | partial | G `core/mem68k.c:1088-1092` ("verified on real hardware") | single emulator | Cond: single source. ESTIMATED | Independent confirmation | Y | N | Y | N |
 | COM-07 | PRG-RAM window only while bus-requested or reset | LA | Y | G `core/mem68k.c:1094-1128`; P `pico/cd/memory.c:1115-1124`; C `source/bus-main-m68k.c:525`; memory-map.md §1 | emulators | Y: CONFIRMED (scope: emulator) | Value read otherwise (open bus vs fault) | Y | Y | Y | N |
 | COM-08 | BK0-1 bank select | LA | Y | G `core/mem68k.c:1172-1174`; P `pico/cd/memory.c:215-219,1119`; C `source/bus-main-m68k.c:1177`; MD `lib/main/gate_arr.def.h:106,110,179` | emulators + MD | Y: bits 6-7 agreed by three emulators and MD. ESTIMATED (OQ-14) | Hardware bit check | Y | Y | Y | N |
-| COM-09 [X-20] | WP blocks Sub writes below WP×512 | LA | Y | G `core/cd_hw/scd.c:158-184`; P `pico/cd/memory.c:828-837,1267-1268`; MD `lib/main/gate_arr.def.h:123-124`; CB `src/main/main.asm:83,89` (writes 0, later `$2A`) | emulators + MD + CB | Y: ESTIMATED | Whether Main or CDC-DMA writes are also blocked (emulators: no) | Y | Y | Y | N |
+| COM-09 [X-20] | WP blocks Sub writes below WP×512 | LA | Y | G `core/cd_hw/scd.c:158-184`; P `pico/cd/memory.c:828-837,1267-1268`; MD `lib/main/gate_arr.def.h:123-124`; CB `src/main/main.asm:83,89` (writes 0, later `$2A`) | emulators + MD + CB | Y: ESTIMATED | Whether Main or CDC-DMA writes are also blocked (G and P: no; C `source/bus-main-m68k.c:972` blocks Main writes below WP×512, cf. ROM-43) (corrected during integration review) | Y | Y | Y | N |
 | COM-10 | WP writable only from Main; Sub byte write to `$FF8002` hits mode bits | LC | partial | G `core/cd_hw/scd.c:857-858` (/LDS and /UDS ignored, "verified … mcd-verificator"); P `pico/cd/memory.c:391`; MD `lib/sub/gate_arr.def.h:84-98` | emulators + MD | Cond: ESTIMATED | Whether a Sub word write to the high byte is ignored on hardware | Y | N | Y | N |
 | COM-11 | IFL2 raises Sub L2 if IEN2 | LB | Y | G `core/mem68k.c:1149-1164`; P `pico/cd/memory.c:171-182`; C `source/bus-main-m68k.c:1127,1144-1148`; MD `lib/main/gate_arr.def.h:44-46`; S-HW §4-1 p.56 (excluded) | as above | Y: CONFIRMED (scope: emulator), three emulators | none for LB | Y | Y | Y | N |
 | COM-12 | IEN2 mirror on Main | LB | Y | G `core/cd_hw/scd.c:1120-1121`; P `pico/cd/memory.c:117-118`; MD `lib/main/gate_arr.def.h:47-48,91` | as above | Y: ESTIMATED | none | Y | Y | Y | N |
@@ -541,10 +706,10 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | CD-028 | SP header format and usercall table | LB | Y | MD `lib/sub/sp_header.s:8-25`, `docs/boot.md:19-26`; `../bios-api.md` A-01/A-02 | MD MIT (RE caveat) | **Cond**: the usable spec is in MD; official §5-3 is excluded | Meaning of the flag/type/next-module fields; module chaining | Y | Y | Y for parity | N for LB (if MD is accepted, #17) |
 | CD-029 | Disc-type classification | LC | partial | MD `lib/sub/cdboot.def.h:73-93` | MD MIT (RE caveat) | **Cond**: the codes are known; the classification rules are not | Rules mapping TOC + ID → type 0–7 | Y | N | Y | N |
 | CD-030 | HOCK enable, INT4 per CDD frame | LA | Y | GX `core/cd_hw/scd.c:1541-1546` (only bit 2 writable), `scd.c:1943-1965` (75 Hz; INT4 only while bit 2 is set); MD `lib/sub/gate_arr.def.h:433`; `../memory-map.md` level 4 | GX cite only; MD MIT | **Cond**: the emulator model is consistent. Hardware rate is ESTIMATED. A NeoGeo-CD wiki note (<https://wiki.neogeodev.org/index.php/CD_drive_control>, different machine) mentions about 64 Hz rather than 75 for its CDD: an **unresolved conflict** | Real INT4 period and jitter; whether it is drive-timed | Y (Probe) | Y (scope: emulator) | Y | N (LA in emulator) / Y for real-HW LA |
-| CD-031 [X-09] | Status frame layout | LA | Y | GX `cdd.c:2026-2078`, `cdd.c:2330-2335`; PD `pico/cd/cdd.c:855-1228` (derived); BE `cdd_mcu.h` (`status_format`, `drive_status` enums, `current_status_nibble`); MD `lib/sub/gate_arr.def.h:440-503` | GX/PD/BE cite only | **Cond**: two independent emulator lineages (GX, BE) agree on the nibble frame. ESTIMATED | Unused-nibble values on hardware; per-report RS8 flags | Y (Probe log) | Y | Y | N (emulator) |
+| CD-031 [X-09] | Status frame layout | LA | Y | GX `cdd.c:2026-2078`, `cdd.c:2330-2335`; PD `pico/cd/cdd.c:855-1228` (derived); BE `cdd_mcu.h` (`status_format`, `drive_status` enums, `current_status_nibble`); MD `lib/sub/gate_arr.def.h:440-503` | GX/PD/BE cite only | **Cond**: GX and BE agree on the nibble frame; BE's independence from GX is unproven (only `cdd_mcu.h` enum names read). ESTIMATED (corrected during integration review) | Unused-nibble values on hardware; per-report RS8 flags | Y (Probe log) | Y | Y | N (emulator) |
 | CD-032 | Command frame and send trigger | LA | Y | GX `scd.c:1548-1556` (write to `$FF804A` → `cdd_process`); BE `cdd_mcu.h` (`current_cmd_nibble`, `cmd_recv_pending`) | as above | **Cond** (ESTIMATED) | Whether hardware needs all nibbles written in order; word vs byte access | Y (Probe) | Y | Y | N |
 | CD-033 | Checksum algorithm and bad-checksum reaction | LA | partial | GX `cdd.c:2330-2335` (status: low nibble of the inverted nibble sum); BE `cdd_mcu.h` (`checksum` fields); GX `cdd.h:63` defines "no valid checksum" status 6 but never uses it | GX/BE cite only | **Cond** for the algorithm. **N** for the drive reaction (GX does not verify command checksums) | Real drive response to a bad command checksum; whether the BIOS must verify the status checksum | Y (Probe sends a bad checksum; harmless) | N | Y | N (LA) / Y for LC robustness |
-| CD-034 [X-09] | Status code set | LA | Y | GX `core/cd_hw/cdd.h:56-71`; BE `cdd_mcu.h` (`drive_status`: same order 0–E) | GX/BE cite only | **Cond**: two lineages agree. ESTIMATED | When each error status (6/7/8, A, D, E) actually occurs | Y (Probe) | Partial | Y | N |
+| CD-034 [X-09] | Status code set | LA | Y | GX `core/cd_hw/cdd.h:56-71`; BE `cdd_mcu.h` (`drive_status`: same order 0–E) | GX/BE cite only | **Cond**: GX and BE agree; BE's independence from GX is unproven. ESTIMATED (corrected during integration review) | When each error status (6/7/8, A, D, E) actually occurs | Y (Probe) | Partial | Y | N |
 | CD-035 [X-09] | Command code set | LA | Y | GX `cdd.c:2024-2325` (0,1,2,3,4,6,7,8,9,A,C,D; others "unsupported"); BE `cdd_mcu.h` (`host_cmd`: NOP, STOP, REPORT_REQUEST, READ, SEEK, INVALID, PAUSE, PLAY, FFWD, RWD, TRACK_SKIP, TRACK_CUE, DOOR_CLOSE, DOOR_OPEN) | GX/BE cite only | **Cond**: the codes agree. Naming differs (GX "Play/Resume" = BE "READ/PLAY") | Semantics of `$5`/`$B`; exact difference between `$3` and `$7` | Y (Probe) | Y | Y | N |
 | CD-036 | Report sub-codes 0–6 (incl. TOC) | LA | Y | GX `cdd.c:2100-2190` (abs/rel time, track no., total length, first/last, track start with RS6 bit 3 = data track, error info); BE `cdd_mcu.h` (`SF_*`: ABSOLUTE, RELATIVE, TRACK, TOCO, TOCT, TOCN, E); EC130 (Q-channel TOC content) | GX/BE cite only; EC130 public | **Cond** (ESTIMATED; the TOC concept is CONFIRMED by EC130) | Exact nibble placement on hardware for each report; lead-in vs lead-out flags | Y (Probe + SynDisc) | Y | Y | N |
 | CD-037 [X-19] | Latency and seek timing | LB | partial | GX `cdd.c:1950-1976` (minimum 2 frames "or the BIOS hangs", +10/step option; linear seek of up to ~120 frames, explicitly "rough approximation"); GX `cdd.c:2028-2031` (games needing ≥ 2–3 "playing" reports) | GX cite only | **N** for hardware (game-tuned emulator constants) | Real command-to-status latency, seek-time curve, spin-up time | Y (Probe timing log) | N | Y | N for LB (a tolerant BIOS can poll) / Y for LC (see CD-107) |
@@ -557,7 +722,7 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | CD-050 | Motorised tray open/close | LC | Y | GX `cdd.c:2276-2316` (`$C` close → TOC/no-disc; `$D` open → status 5); MD `lib/sub/bios.def.h:213`, `lib/sub/cdboot.def.h:33-57` | GX cite only; MD MIT | **Cond** | Tray-moving status duration; behaviour on top-loaders | Y (Probe, Model 1) | Partial | Y | N |
 | CD-051 | Top-loader lid detection | LC | N | not found in sources examined (GX, PD, CL, BE, MD) | - | **N** | How a lid-open is reported (status code? timing?) | Y (Probe, Model 2) | N | Y | N |
 | CD-052 | Insertion → TOC read | LA | partial | GX `cdd.c:2276-2295` (close → status 9 "TOC" when loaded) | GX cite only | **Cond** | Whether the drive reads the TOC on its own or needs a command | Y (Probe) | Y (scope: emulator) | Y | N |
-| CD-053 | No-disc detection | LA | Y | GX `cdd.h:68` (status B), `cdd.c:2083`; BE `cdd_mcu.h` (`DS_NO_DISC`) | GX/BE cite only | **Cond** (two lineages agree) | Time until no-disc is reported | Y (emulator with no disc; Probe) | Y | Y | N |
+| CD-053 | No-disc detection | LA | Y | GX `cdd.h:68` (status B), `cdd.c:2083`; BE `cdd_mcu.h` (`DS_NO_DISC`) | GX/BE cite only | **Cond** (GX and BE agree; BE's independence from GX is unproven) (corrected during integration review) | Time until no-disc is reported | Y (emulator with no disc; Probe) | Y | Y | N |
 | CD-054 | Disc change while running | LC | N | not found in sources examined | - | **N** | Status sequence and required re-init | Y (Probe) | Partial | Y | N |
 | CD-055 | Pause→standby timer | LC | partial | MD `lib/sub/bios.def.h:424-434` (CDBPAUSE sets the spin-down delay) | MD MIT (RE caveat) | **Cond**: the API exists; units unknown | Units and default; whether the drive or the BIOS implements it | Y | N | Y | N |
 | CD-056 | Lead-out / end status | LC | partial | GX `cdd.c:1800-1804` (status C at end of disc); BE `DS_DISC_LEADOUT` | GX/BE cite only | **Cond** | Real behaviour at lead-out (auto-stop? loop?) | Y (SynDisc + Probe) | Y | Y | N |
@@ -626,14 +791,14 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | CD-145 | Skipped/out-of-order sector detection | LC | partial | GX `cdd.c:1813-1825`; EC130 header | GX cite only; public | **Y** (compare HEAD MSF to the expected value) | None | Y | Partial (emulators never skip) | Y | N |
 | PRV-01 | The maintainer decides whether paraphrased citation of CONFIDENTIAL-marked manuals is allowed; until then they are excluded | LA | partial (issue open) | Issue #17; PR #16 `docs/specifications/README.md:3-5`; `open-questions.md` OQ-19 | L-01..L-07: CONFIDENTIAL / PROPERTY OF SEGA. LEGAL-REVIEW. | N: a decision, not a source | Maintainer/legal decision text; what to do with PR #16 citations if rejected | N | N | N | **Y**: PR #16 cannot merge. Many items stay ESTIMATED because the only official cross-check is excluded. |
 | PRV-02 [X-04] | A documented clean-room basis on which the Sub BIOS entry points (`$5F16`/`$5F1C`/`$5F22` etc.), function codes and register conventions may be implemented | LB | partial | `megadev/lib/sub/bios.def.h` (PR #16 bios-api.md §1); `megadev/docs/main_bios.md:12` (Sub calls documented in the official manual); `clown/source/bus-sub-m68k.c:712` (`$5F16` trap), `:882-884` (`$5F22` trap) | MegaDev is MIT, but its Sub-side data is derived from L-02 (confidential). clown is AGPL; its HLE knowledge comes by an unknown method. LEGAL-REVIEW: are interface facts (addresses, codes) usable? | Cond: only if the maintainer accepts interface facts from MegaDev, or after black-box confirmation (EXP-04) | Provenance-clean list of entries, codes, argument registers, return conventions | Y (EXP-04 conformance suite on our BIOS) | Y for our own BIOS. Expected values need the original as reference. | Y for authoritative expected values (or a user-supplied BIOS in a local emulator, PRV-26) | **Y**: homebrew SPs call these entries directly. No provenance-clean source exists. |
-| PRV-03 [X-08] | A documented clean-room basis for the Main-side `$280` library and its work RAM | LC | partial (RE only) | `megadev/docs/main_bios.md:12,30-32,104,212,220`; PR #16 bios-api.md A-11/A-12, OQ-7 | Derived from reverse engineering of Sega ROMs; MegaDev invites reading the disassembly. Tech Bulletin #3 (L-06) is quoted. Policy rule 1 / OQ-7. LEGAL-REVIEW. | **N**: no public non-RE source; the official doc is unknown (`ROM_UTIL.DOC`, L-07) | Entry list, order, semantics, work-RAM layout | Partly: black-box observation of retail games' calls (EXP-09) under a clean-room protocol | Y for observation if a user-supplied BIOS is used locally (LEGAL-REVIEW) | Y for ground truth | **Y** for LC: Japanese titles named in `megadev/docs/main_bios.md:32` call it. |
+| PRV-03 [X-08] | A documented clean-room basis for the Main-side `$280` library and its work RAM | LC | partial (RE only) | `megadev/docs/main_bios.md:12,30-32,104,212,220`; PR #16 bios-api.md A-11/A-12, OQ-7 | Derived from reverse engineering of Sega ROMs; MegaDev invites reading the disassembly. Tech Bulletin #3 (L-06) is quoted. Policy rule 1 / OQ-7. LEGAL-REVIEW. | **N**: not found in the sources examined (L-01..L-22) except RE-derived MegaDev material; the official doc (`ROM_UTIL.DOC`, L-07) was not found (corrected during integration review) | Entry list, order, semantics, work-RAM layout | Partly: black-box observation of retail games' calls (EXP-09) under a clean-room protocol | Y for observation if a user-supplied BIOS is used locally (LEGAL-REVIEW) | Y for ground truth | **Y** for LC: Japanese titles named in `megadev/docs/main_bios.md:32` call it. |
 | PRV-04 [X-03] | Main exception/interrupt jump table at `$FFFD00` (6-byte JMP slots; V-INT slot that software patches) | LB | partial | `megadev/lib/main/memmap.def.h:19,68-99` (via PR #16 A-10); Tech Bulletin #3 quote `megadev/docs/main_bios.md:56-63`; `clown/source/mega-cd-boot-rom.c:1-24` (vector words point into `$FFFD00-$FFFDA2`) | MegaDev MIT, partly RE plus a confidential quote; clown AGPL (data observed only, not copied) | Cond: three sources agree on the table's existence and base, but the per-slot assignment rests on MegaDev (OQ-12 duplicate slot) | Authoritative slot-to-vector map; the duplicate `$FFFD80` | Y (a probe IP patches each slot and triggers the exception) | Y for consistency | Y to confirm | N for LB if limited to the V-INT/H-INT slots MegaDev homebrew uses; Y for full LC |
 | PRV-05 [X-06] | What the original BIOS checks on a disc (bytes compared, when, failure behaviour), so that a policy can be chosen | LC | partial (single weak source) | I-RHOPE fetched HTML lines 54, 58 (compares `200h-783h` with a copy in the BIOS; the check runs only for `SEGABOOTDISC`/`SEGADISCSYSTEM`); `megadev/new_project/README.md:21` (security code size 1,412 B US/EU, 342 B JP); PR #16 OQ-8 | I-RHOPE: no licence, TLS-invalid; MegaDev MIT (sizes are facts). The security code is Sega's. LEGAL-REVIEW (lockout and interoperability). | Cond: an independent BIOS **need not** replicate the check; only the **policy** needs a legal decision | Whether the check covers JP, and its exact range per region/model; legal stance | Partly (EXP-05 negative tests on our own discs) | N (emulators skip it: `clown/source/clownmdemu.c:502,511` region code commented out) | Y | **Y** for LC: no policy without legal review (OQ-8) |
 | PRV-06 [X-06] | How disc region interacts with console region (header region field, rejection behaviour) | LC | partial | `clown/source/clownmdemu.c:502,511` (region read commented out, emulator-scoped); `megadev/megadev.make:50-63`, `megadev/lib/cd_boot.s:85` (header region string); I-RHOPE | Emulator/SDK only | Cond: the header field format is known; the hardware reaction is not | Original BIOS reaction to a region mismatch, per model | Y (EXP-05 with region-byte variants) | N | Y | N for LB (we choose the policy); N for LC unless a game is found that depends on regional rejection |
 | PRV-07 [X-06] | Retail security code (it runs from `$FF0000` and returns to `$FF0584` on US discs) works on our BIOS: the VDP state, font and interrupts it relies on | LC | partial | I-RHOPE line 60 (logo display, return address, font left in VRAM); `megadev/docs/boot.md:13-15` | The code belongs to Sega; observation only | **N**: dependencies are undocumented in non-excluded sources | Which BIOS-set state the security code reads (VDP regs, vectors, Sub status) | Partly: run a user-owned disc's IP under our BIOS in a local emulator and trace it (EXP-09, LEGAL-REVIEW) | Y (local, not CI) | Y to confirm | **Y** for LC: every retail disc runs this code first |
 | PRV-08 | No Sega security-block bytes in the repo, fixtures, CI caches or releases, including MegaDev-built IPs | LB | Y (policy exists) | `docs/provenance.md:5`; `megadev/lib/security.c:1-9,15-274`; `megadev/megadev.make:213-218` | Sega code inside an MIT repo; MIT does not license it. LEGAL-REVIEW. | Y: a project rule plus a detector (e.g. reject any fixture whose IP begins with a known security-block hash, without storing the bytes) | A hash list that does not store the bytes (needs a lawful way to compute it) | Y | Y | N | N, but a high risk if missed: MegaDev examples embed the block by default |
 | PRV-09 | Our test discs boot under our BIOS without Sega code, and can be compared under the original BIOS lawfully | LB | partial | `megadev/megadev.make:213-218` (security linked by default); I-RHOPE lines 75, 79 (`base.img` approach, **rejected**) | Comparison under the original BIOS requires the security block on the disc, i.e. Sega code in a local build | Y for our side (our BIOS defines the policy). Comparison: Cond (LEGAL-REVIEW) | A lawful way to produce "comparison" discs, or a Mode-1 route (EXP-04b) | Y | Y | Y for comparison | N for LB on our BIOS; Y for the reference comparison |
-| PRV-10 [X-16] | Boot-sector header layout: system ID at sector 0, IP offset/size fields, SP offset/size | LB | Y (several non-excluded sources) | I-RHOPE lines 52-58; `megadev/lib/cd_boot.s:85,95`; `clown/source/clownmdemu.c:498-511` (word offsets `0x18/0x1A/0x20/0x22`, emulator-scoped); `gpgx/core/cd_hw/cdd.c:1181-1182` (first-track type check) | MIT / no licence / AGPL / non-commercial; facts only | Y (Cond: cross-checked across three lineages, but no hardware measurement) | Behaviour for non-default IP sizes on hardware (`megadev/docs/boot.md:15` says untested) | Y | Y | Y for non-default layouts only | N |
+| PRV-10 [X-16] | Boot-sector header layout: system ID at sector 0, IP offset/size fields, SP offset/size | LB | Y (several non-excluded sources) | I-RHOPE lines 52-58; `megadev/lib/cd_boot.s:30,52-60` (disc ID and IP/SP offset/size fields; the earlier `:85,95` pointed at the region string, corrected during integration review); `clown/source/clownmdemu.c:498-511` (word offsets `0x18/0x1A/0x20/0x22`, emulator-scoped); `gpgx/core/cd_hw/cdd.c:1181-1182` (first-track type check) | MIT / no licence / AGPL / non-commercial; facts only | Cond: cross-checked across three lineages, but no hardware measurement (corrected during integration review: was "Y (Cond: …)") | Behaviour for non-default IP sizes on hardware (`megadev/docs/boot.md:15` says untested) | Y | Y | Y for non-default layouts only | N |
 | PRV-11 | Accepted system IDs (`SEGADISCSYSTEM`, `SEGABOOTDISC`, `SEGADISC`, `SEGADATADISC`) and their semantics | LB | partial | I-RHOPE lines 52-55 ("not exactly sure what the difference is"); PR #16 OQ-9; official S-FMT excluded | I-RHOPE only, uncertain | Cond: `SEGADISCSYSTEM` boots in every source; the others are unclear | Semantics of the other three IDs | Y (EXP-05 ID variants) | Y, emulator-scoped | Y for truth | N for LB (use `SEGADISCSYSTEM`); open for LC |
 | PRV-12 [X-04] | Sub-BIOS function codes (`MSC_*`, `ROM_*`, `CDB*`, `BRM*` …) from a source independent of S-BIOS | LB | partial | `megadev/lib/sub/bios.def.h` (duplicates `:235,242` vs `:252,262`, OQ-12); `clown/source/bus-sub-m68k.c:73-327` (codes `0x02`…`0x8D` handled), `:720-838` (BRM codes `0x00`-`0x08`); `clown/TODO.md:104` (BuRAM calls incomplete) | MegaDev derived from L-02; clown AGPL, method unknown | Cond: two non-confidential listings exist, but **neither is provenance-independent** | Codes clown leaves unimplemented (`bus-sub-m68k.c:327` logs unrecognised calls); argument and return semantics | Y (EXP-04) | Y against clown's HLE; against GPGX/Pico only with a Sega BIOS | Y for truth | Y for LB (part of PRV-02) |
 | PRV-13 [X-07] | Internal BRAM on-media format and `_BURAM` behaviour, so that our BIOS reads saves the original wrote and vice versa | LC | partial | `clown/source/bus-sub-m68k.c:712-840` (HLE `_BURAM`); `megadev/lib/sub/bram.def.h`, `bram.h:60-145` | AGPL / MIT derived from L-02 | Cond | Directory/format layout written by the original BRAM manager | Y (EXP-08: read raw BRAM written by the original; data only) | Partly | Y | N (games format BRAM through our BIOS); Y only for save interoperability |
@@ -652,7 +817,7 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | PRV-26 | Legal basis for observing the original BIOS (owned console), using a user-supplied BIOS dump in a local emulator, and running user-owned retail discs for black-box traces | LC | N | `docs/provenance.md:7` (rule 3 allows observation, with binaries kept outside the repo and CI) | LEGAL-REVIEW (jurisdiction-specific) | N: a legal question | Written guidance on which observations are permitted | n/a | n/a | n/a | **Y** for LC: compatibility evidence for retail games depends on it |
 | PRV-27 [X-15] | Handle TMSS: write `"SEGA"` to `$A14000` on TMSS consoles | LA | partial | PR #16 OQ-6; a Mega-CD-specific statement was not found in the sources examined | Trademark-based lockout question. LEGAL-REVIEW. | Cond | Whether the Mega-CD Mode-2 path triggers TMSS at all | Y (EXP-01 on TMSS and non-TMSS units) | Y, emulator-scoped | Y | N for emulators; Y for a hardware boot on TMSS units until resolved |
 | PRV-28 | The BIOS boot screen, CD player and BRAM manager use no Sega logo, fonts, audio or text | LA | Y (policy) | `docs/provenance.md:3,5`; PR #16 bios-api.md §4 | — | Y (own design) | none | Y | Y | N | N |
-| PRV-29 | Variants per model/region (Model 1/2, CDX, Wondermega, LaserActive, Multi-Mega) and what differs | LC | partial | `megadev/docs/main_bios.md:38` (`$280` table "at the same offset" across the listed models, RE-derived); PR #16 OQ-16 | RE-derived | N: no public non-RE per-model list | Model list with BIOS revisions and behaviour differences | Partly (PCB photos for capacity, OQ-16) | N | Y, per model | N for a single target model; Y for broad LC claims |
+| PRV-29 | Variants per model/region (Model 1/2, CDX, Wondermega, LaserActive, Multi-Mega) and what differs | LC | partial | `megadev/docs/main_bios.md:38` (`$280` table "at the same offset" across the listed models, RE-derived); PR #16 OQ-16 | RE-derived | N: not found in the sources examined (L-01..L-22) except RE-derived statements (corrected during integration review) | Model list with BIOS revisions and behaviour differences | Partly (PCB photos for capacity, OQ-16) | N | Y, per model | N for a single target model; Y for broad LC claims |
 | PRV-30 | Official corporate page for the model list | LC | N (inaccessible) | L-09 (HTTP 403, Cloudflare) | Corporate terms (unread) | N | Page content | n/a | n/a | n/a | N (a human checks it in a browser) |
 | PRV-31 | Evidence that a non-Sega boot ROM / HLE BIOS boots Mode-2 discs (feasibility lead) | LB | Y (emulator-scoped) | `clown/source/clownmdemu.c:494-531` (reads sector 0, loads the IP to Word RAM and then Main RAM, the SP to PRG-RAM `$6000`, gives Word RAM to the Sub CPU; no region/security check); `clown/source/bus-main-m68k.c:19-20` (built-in boot ROM) | AGPL; read only. Boot-ROM blob provenance unverifiable (no source in the repo). | Y as a lead only (emulator-scoped; CONFIRMED for that emulator) | How far the HLE approach diverges from hardware | n/a | Y | N | N |
 | PRV-32 | Emulator comments like "This is what Sega's BIOS does" are leads, never specs | LC | Y | `clown/source/clownmdemu.c:506,523`; `clown/source/cdda.c:6`; `clown/source/bus-sub-m68k.c:128,140,153` (open questions about official BIOS behaviour) | AGPL; method unknown (possibly disassembly or observation) | Y (as a process rule) | The method behind each claim | Y (EXP-04 turns each claim into a test) | Y | Y | N |
@@ -662,3 +827,38 @@ All 406 rows of the five area files, verbatim and in area order. Only two mechan
 | PRV-36 | Official SDK artefacts known only by reference | LC | N (not found) | `megadev/docs/main_bios.md:50-71` (Tech Bulletin #3, `MAINENT.I`, `ROM_UTIL.DOC`); `:87-100` (32X `MAINCPU.INC`); PR #16 bios-api.md:7 (`cabios.i`) | Confidential-marked by reference; existence only | N | n/a (not to be adopted) | n/a | n/a | n/a | N (recorded as leads for EXP-04/09) |
 | PRV-37 | Own disc-image fixtures (ISO / BIN+CUE) and CD-R readability on real units | LB | partial | `gpgx/core/cd_hw/cdd.c:510-525,810-820` (accepted image formats, emulator-scoped); CD-R readability on real Mega-CD units **not found in the sources examined** | Own fixtures only | Y for emulators | Hardware CD-R compatibility per model | Y | Y | Y for disc tests | N |
 <!-- END GENERATED: matrix -->
+
+## 8. Changes made during integration review
+
+The independent review of PR #21 found over-claims and absence wording that the brief forbids. Each correction below was made in the area file, with "corrected during integration review" noted on the row or line, and flows into §7 through the generator. No blocker was removed, and no Implementable rating was raised.
+
+| # | File | Item / location | Change |
+| --- | --- | --- | --- |
+| C-01 | rom-cpu-memmap.md | ROM-41, reference cell | PicoDrive `memory.c:186-187`: the "verified" SRES=0 ⇒ SBRQ=1 rule is commented out, so PicoDrive does not apply it (cf. COM-05). The cell no longer cites it as support. |
+| C-02 | rom-cpu-memmap.md | ROM-45, provenance cell | "Both SDKs say … official BIOS manual" → only MegaDev says so; MCDBOOT states no origin. |
+| C-03 | rom-cpu-memmap.md | ROM-45, Implementable cell | The same correction in the rationale. |
+| C-04 | rom-cpu-memmap.md | §3 LB note | "both SDKs trace back to the excluded official manual" → MegaDev does; MCDBOOT states no origin. |
+| C-05 | comm-wordram-irq.md | COM-09, missing-information cell | "emulators: no" → GX and PicoDrive: no; clownmdemu `source/bus-main-m68k.c:972` blocks Main writes below WP×512 (cf. ROM-43). |
+| C-06 | bios-api.md | §3 summary, LC blockers | "unknown everywhere" → "not found in the sources examined: MD, CL, MB, M1, E-GPGX-F, E-PICO". |
+| C-07 | cd-boot.md | Short answer, LA | "BlastEm independently" → BlastEm's `cdd_mcu.h` agrees with GX; its independence is unproven. |
+| C-08 | cd-boot.md | §0 source register, BE row | "independent of GX" → independence from GX unproven (only enum names read). |
+| C-09 | cd-boot.md | CD-031, Implementable cell | "two independent emulator lineages agree" → GX and BE agree; BE's independence is unproven. |
+| C-10 | cd-boot.md | CD-034, Implementable cell | "two lineages agree" → GX and BE agree; independence unproven. |
+| C-11 | cd-boot.md | CD-053, Implementable cell | Same correction as C-10. |
+| C-12 | provenance-experiments.md | PRV-03, Implementable cell | "no public non-RE source; the official doc is unknown" → not found in the sources examined (L-01..L-22) except RE-derived MegaDev; the official doc was not found. |
+| C-13 | provenance-experiments.md | PRV-29, Implementable cell | "no public non-RE per-model list" → not found in the sources examined except RE-derived statements. |
+| C-14 | provenance-experiments.md | §4 top blocker 5 | "known only from reverse engineering" → not found in the sources examined except reverse-engineered material. |
+| C-15 | provenance-experiments.md | §5.1, PRV-03 row | "Known only from RE" → not found in the sources examined (L-01..L-22) except RE-derived material. |
+| C-16 | provenance-experiments.md | §5.1, PRV-29 row | "Only RE-derived statements exist" → not found in the sources examined except RE-derived statements. |
+| C-17 | provenance-experiments.md | PRV-10, Implementable cell | "Y (Cond: …)" → **Cond**, because the parenthesis already stated the condition. This lowers the rating; it does not raise it. |
+| C-18 | provenance-experiments.md | PRV-10, reference cell | `megadev/lib/cd_boot.s:85,95` (region string) → `:30,52-60` (disc ID and IP/SP offset/size fields), checked at `7a7246c`. |
+| C-19 | provenance-experiments.md | §3 intro | States that `gpgx/…` line numbers refer to upstream `49c5847`, not the fork (e.g. `cdd.c:1181` upstream = `:1168` fork). |
+
+Changes to this document and the tool:
+
+- The headline was redefined by adding rules 5 and 6 (§4). The previous headline is kept as the lenient secondary view.
+- Rule 4 now treats inherited blockers ("via API-60") as blocking, which affects API-56.
+- The X-groups (§3) are now data that the script reads. The provenance hand-check overrides (H-01…H-05) are a table in §4.
+- Verdict B was split into B1 (own ABI) and B2 (MegaDev-class); B2 is 現時点では困難. Verdicts A and C were reworded against the new headline, and the absence wording in §1 and §2 was rephrased.
+- §1 gained G-17 (CD-033), and API-56 was added to G-10.
+- §3 entries X-09, X-20, X-21 and S-2, and the §6 source table, were updated for C-01, C-05, C-07…C-11 and C-19.

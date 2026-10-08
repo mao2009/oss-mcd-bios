@@ -252,7 +252,7 @@ The counts come from the table above. A row tagged "LB/LC" is counted once, at L
 | --- | --- | --- | --- | --- |
 | LA | 0 | 0 | 0 | None. A minimal boot exposes no API surface (see rom-layout and memory-map). |
 | LB | 38 | 37 (all except API-11) | 5 (API-09, 17, 18, 70, 75) | **API-71** (security/region policy, OQ-8). API-23 is listed as a blocker only for its LC part. |
-| LC | 50 | 31 | 1 (API-77) | **API-23** (full CDBSTAT structure), **API-45** (drive timing), **API-60** (BRAM media format), **API-82 to API-94** (Main `$280` library, policy-blocked by OQ-7), **API-92** (comm/proxy protocol, unknown everywhere) |
+| LC | 50 | 31 | 1 (API-77) | **API-23** (full CDBSTAT structure), **API-45** (drive timing), **API-60** (BRAM media format), **API-82 to API-94** (Main `$280` library, policy-blocked by OQ-7), **API-92** (comm/proxy protocol, not found in the sources examined: MD, CL, MB, M1, E-GPGX-F, E-PICO; corrected during integration review) |
 | **Total** | **88** | **68** | **6** | |
 
 **Verdict.**

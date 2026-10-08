@@ -2,8 +2,10 @@
 
 The consolidated table in docs/specifications/coverage-matrix.md is a verbatim
 copy of the rows in docs/specifications/coverage/*.md. Two mechanical edits are
-made: relative link targets are rebased one directory up, and cross-area flags
-("[X-nn]") are appended to the ID cell.
+made: relative link targets are rebased one directory up, and cross-area group
+tags ("[X-nn]") are appended to the ID cell. Group membership is read from the
+"Cross-area overlaps and disagreements" table (Tag | Topic | Items | ...) in the
+matrix itself, so that table is the single data source for the groups.
 
   python tools/audit/coverage_rate.py           print the rate tables
   python tools/audit/coverage_rate.py --write   regenerate both generated blocks
@@ -30,36 +32,15 @@ HEADER = ("| ID | Required behavior | Level | Existing material (Y/N/partial) | 
           "Verifiable in emulator only? | Real hardware needed? | "
           "Blocker? (Y/N + why) |")
 LEVELS = ("LA", "LB", "LC")
-
-# Cross-area overlaps/disagreements; explained in coverage-matrix.md section 3.
-FLAGS = {
-    "X-01": "ROM-65 COM-52 COM-63 API-72 CD-117",
-    "X-02": "ROM-68 ROM-70 COM-81 API-73 CD-117",
-    "X-03": "ROM-26 ROM-27 COM-79 API-80 API-81 PRV-04",
-    "X-04": "API-06 API-10 API-32 API-37 CD-080 PRV-02 PRV-12",
-    "X-05": "API-16 API-23 CD-081",
-    "X-06": "ROM-101 API-71 CD-130 CD-131 CD-132 CD-133 PRV-05 PRV-06 PRV-07",
-    "X-07": "ROM-90 API-60 PRV-13",
-    "X-08": "ROM-11 ROM-71 COM-35 COM-82 API-82 API-83 API-92 API-94 PRV-03",
-    "X-09": "CD-031 CD-034 CD-035 PRV-15 PRV-19",
-    "X-10": "CD-060 PRV-16",
-    "X-11": "ROM-44 COM-86",
-    "X-12": "ROM-49 COM-32 COM-33 API-07 API-14 CD-116",
-    "X-13": "ROM-10 COM-58 API-76 API-77 CD-120",
-    "X-14": "ROM-47 API-15",
-    "X-15": "ROM-31 PRV-27",
-    "X-16": "CD-022 CD-023 API-70 PRV-10",
-    "X-17": "API-30 API-34 CD-091",
-    "X-18": "API-05 API-65 API-66 CD-089",
-    "X-19": "API-45 CD-037 CD-107",
-    "X-20": "ROM-43 ROM-63 COM-09",
-    "X-21": "ROM-41 COM-05",
-    "X-22": "ROM-40 COM-04",
-}
 CONFLICT = re.compile(r"unconfirmed|conflict|disagree|contradict", re.I)
-# Provenance cell says the knowledge derives from the excluded manuals or from RE.
-TAINT = re.compile(r"P-OFF|P-RE|\bRE\b|RE-derived|reverse.engineer|disassembl|"
-                   r"official BIOS manual|derived from L-0|derive from XS", re.I)
+# Provenance cell ("as above"/"as <ID>" expanded) records origin in the excluded
+# manuals, in RE, or in an undeclared-origin source. Hand-checked: see matrix §4.
+TAINT = re.compile(r"P-OFF|P-RE|P-UNK|\bRE\b|RE-derived|reverse.engineer|disassembl|"
+                   r"official BIOS manual|derived from L-0|derive from XS|"
+                   r"second-hand from XS|quotes official", re.I)
+# Implementable cell says the item rests on excluded material.
+IMPL_TAINT = re.compile(r"only via an excluded|rests on an excluded|"
+                        r"origin is the excluded|attributes them to the excluded", re.I)
 
 
 def split_row(line):
@@ -67,7 +48,7 @@ def split_row(line):
 
 
 def table_rows(text):
-    """12-column rows whose first cell is an item ID (optionally flagged)."""
+    """12-column rows whose first cell is an item ID (optionally tagged)."""
     rows, width, prev = [], 0, []
     for line in text.splitlines():
         if not line.startswith("| "):
@@ -84,28 +65,42 @@ def table_rows(text):
     return rows
 
 
+def groups(text):
+    """{tag: [IDs]} from rows "| X-nn | topic | ID, ID, ... | ... |"."""
+    out = {}
+    for line in text.splitlines():
+        if re.match(r"\| X-\d+ \|", line):
+            cells = split_row(line)
+            out[cells[0]] = re.findall(r"[A-Z]+-\d+", cells[2])
+    return out
+
+
+def overrides(text):
+    """IDs hand-checked as provenance-clean despite a TAINT hit: "| H-nn | ID | why |"."""
+    return set(re.findall(r"^\s*\| H-\d+ \| ([A-Z]+-\d+) \|", text, re.M))
+
+
 def item_id(row):
     return row[0].split()[0]
 
 
-def area_rows():
-    flags = {}
-    for tag, ids in FLAGS.items():
-        for i in ids.split():
-            flags.setdefault(i, []).append(tag)
+def area_rows(group_map):
+    tags = {}
+    for tag, ids in group_map.items():
+        for i in ids:
+            tags.setdefault(i, []).append(tag)
     out = []
     for prefix, _, name in AREAS:
-        rows = table_rows((SPEC / "coverage" / name).read_text(encoding="utf-8"))
-        for r in rows:
+        for r in table_rows((SPEC / "coverage" / name).read_text(encoding="utf-8")):
             if not r[0].startswith(prefix + "-"):
                 raise ValueError(f"{name}: unexpected ID {r[0]}")
             r = [c.replace("](../", "](") for c in r]
-            r[0] = " ".join([r[0]] + [f"[{t}]" for t in flags.get(r[0], [])])
+            r[0] = " ".join([r[0]] + [f"[{t}]" for t in tags.get(r[0], [])])
             out.append(r)
     ids = [item_id(r) for r in out]
-    missing = {i for v in FLAGS.values() for i in v.split()} - set(ids)
-    if len(ids) != len(set(ids)) or missing:
-        raise ValueError(f"duplicate IDs or unknown flagged IDs: {missing}")
+    unknown = {i for v in group_map.values() for i in v} - set(ids)
+    if len(ids) != len(set(ids)) or unknown:
+        raise ValueError(f"duplicate IDs or unknown grouped IDs: {unknown}")
     return out
 
 
@@ -119,18 +114,21 @@ def level(row):
     return re.match(r"L[ABC]", row[2]).group(0)  # "LB/LC" counts at LB
 
 
+def blocking(row):
+    """Blocker cell starts with Y, or inherits a blocker ("via API-60")."""
+    return head(row[11]) == "Y" or row[11].strip().startswith("via ")
+
+
 def defined(row):
-    """Verifiable spec defined from non-excluded sources (matrix section 4)."""
-    material, impl, own_test, blocker = head(row[3]), head(row[6]), head(row[8]), head(row[11])
+    """Rules 1-4 of matrix §4: defined by any cited non-excluded source."""
+    material, impl, own_test = head(row[3]), head(row[6]), head(row[8])
     if impl not in ("Y", "Cond"):
         return False
     if any(CONFLICT.search(row[i]) for i in (3, 4, 5, 6)):
         return False
     if (impl == "Cond" or material != "Y") and own_test != "Y":
         return False
-    if impl == "Cond" and blocker == "Y":
-        return False
-    return True
+    return not (impl == "Cond" and blocking(row))
 
 
 def provenance(rows):
@@ -145,20 +143,49 @@ def provenance(rows):
     return out
 
 
-def rates(rows):
-    """{scope: {level: (defined, untainted, Y-only, enumerated)}}, levels cumulative."""
+def classify(rows, group_map, clean_ids=frozenset()):
+    """{ID: dict(defined, clean, undisputed, y)} for every row."""
     prov = provenance(rows)
+    base = {item_id(r): defined(r) for r in rows}
+    out = {}
+    for r in rows:
+        i = item_id(r)
+        members = [j for g in group_map.values() if i in g for j in g]
+        out[i] = {"defined": base[i],
+                  "clean": i in clean_ids or not (TAINT.search(prov[i]) or IMPL_TAINT.search(r[6])),
+                  "undisputed": all(base[j] for j in members),
+                  "y": head(r[6]) == "Y"}
+    return out
+
+
+VIEWS = [  # (title, predicate over a classify() entry)
+    ("Headline: defined, provenance-clean and undisputed",
+     lambda k: k["defined"] and k["clean"] and k["undisputed"]),
+    ("Secondary: defined and provenance-clean (cross-area disputes ignored)",
+     lambda k: k["defined"] and k["clean"]),
+    ("Secondary: defined and undisputed (manual/RE-derived sources allowed)",
+     lambda k: k["defined"] and k["undisputed"]),
+    ("Secondary: defined by any cited source, including manual/RE-derived (lenient)",
+     lambda k: k["defined"]),
+    ("Secondary: headline items whose Implementable cell is Y",
+     lambda k: k["defined"] and k["clean"] and k["undisputed"] and k["y"]),
+]
+
+
+def rates(rows, group_map, clean_ids=frozenset()):
+    """{view: {scope: {level: (count, enumerated)}}}, levels cumulative."""
+    cls = classify(rows, group_map, clean_ids)
     scopes = {"All areas": rows}
     for prefix, label, _ in AREAS:
         scopes[label] = [r for r in rows if item_id(r).startswith(prefix + "-")]
     out = {}
-    for scope, rs in scopes.items():
-        out[scope] = {}
-        for n, lv in enumerate(LEVELS):
-            sel = [r for r in rs if level(r) in LEVELS[: n + 1]]
-            d = [r for r in sel if defined(r)]
-            out[scope][lv] = (len(d), sum(not TAINT.search(prov[item_id(r)]) for r in d),
-                              sum(head(r[6]) == "Y" for r in d), len(sel))
+    for title, pred in VIEWS:
+        out[title] = {}
+        for scope, rs in scopes.items():
+            out[title][scope] = {}
+            for n, lv in enumerate(LEVELS):
+                sel = [r for r in rs if level(r) in LEVELS[: n + 1]]
+                out[title][scope][lv] = (sum(pred(cls[item_id(r)]) for r in sel), len(sel))
     return out
 
 
@@ -166,23 +193,30 @@ def pct(a, b):
     return f"{a}/{b} = {100 * a / b:.1f}%" if b else f"{a}/0: not computable"
 
 
-def render_rates(rows):
+def render_rates(rows, group_map, clean_ids=frozenset()):
     lines = []
-    for k, title in ((0, "Headline: defined"), (1, "Defined and provenance cell not "
-                     "manual/RE-derived"), (2, "Defined and Implementable = Y")):
+    for title, by in rates(rows, group_map, clean_ids).items():
         lines += [f"**{title}**", "",
                   "| Scope | LA (LA items) | LB (LA+LB items) | LC (all items) |",
                   "| --- | --- | --- | --- |"]
-        for scope, by in rates(rows).items():
-            lines.append(f"| {scope} | " + " | ".join(pct(by[lv][k], by[lv][3]) for lv in LEVELS) + " |")
+        for scope, lv in by.items():
+            lines.append(f"| {scope} | " + " | ".join(pct(*lv[x]) for x in LEVELS) + " |")
         lines.append("")
+    cls = classify(rows, group_map, clean_ids)
     own = {lv: sum(level(r) == lv for r in rows) for lv in LEVELS}
-    excluded = [item_id(r) for r in rows if head(r[6]) in ("Y", "Cond") and not defined(r)]
+
+    def ids(pred):
+        found = [item_id(r) for r in rows if pred(cls[item_id(r)], r)]
+        return f"({len(found)}): " + (", ".join(found) or "none") + "."
+
     lines += [f"Items enumerated by minimum level: LA {own['LA']}, LB {own['LB']}, "
-              f"LC {own['LC']}, total {len(rows)}.",
-              "",
-              f"Items marked Y or Cond by their area file but NOT counted as defined "
-              f"by the rule ({len(excluded)}): " + ", ".join(excluded) + "."]
+              f"LC {own['LC']}, total {len(rows)}.", "",
+              "Demoted by provenance (defined, but manual/RE/undeclared-origin) "
+              + ids(lambda k, r: k["defined"] and not k["clean"]), "",
+              "Demoted by cross-area dispute (defined, but another row of its X-group "
+              "is not) " + ids(lambda k, r: k["defined"] and not k["undisputed"]), "",
+              "Marked Y or Cond by the area file but not defined by rules 1-4 "
+              + ids(lambda k, r: head(r[6]) in ("Y", "Cond") and not k["defined"])]
     return "\n".join(lines)
 
 
@@ -191,8 +225,9 @@ def render_matrix(rows):
     return "\n".join([HEADER, sep] + ["| " + " | ".join(r) + " |" for r in rows])
 
 
-def regenerate(text, rows):
-    for name, body in (("matrix", render_matrix(rows)), ("rates", render_rates(rows))):
+def regenerate(text, rows, group_map):
+    clean_ids = overrides(text)
+    for name, body in (("matrix", render_matrix(rows)), ("rates", render_rates(rows, group_map, clean_ids))):
         pat = re.compile(rf"(<!-- BEGIN GENERATED: {name} -->\n).*?(<!-- END GENERATED: {name} -->)", re.S)
         if not pat.search(text):
             raise ValueError(f"marker for {name} missing")
@@ -201,16 +236,17 @@ def regenerate(text, rows):
 
 
 def main(argv):
-    rows = area_rows()
+    text = MATRIX.read_text(encoding="utf-8")
+    group_map = groups(text)
+    rows = area_rows(group_map)
     if "--write" in argv or "--check" in argv:
-        text = MATRIX.read_text(encoding="utf-8")
-        new = regenerate(text, rows)
+        new = regenerate(text, rows, group_map)
         if "--check" in argv:
             ok = new == text
             print("matrix up to date" if ok else "matrix STALE: run --write")
             return 0 if ok else 1
         MATRIX.write_text(new, encoding="utf-8", newline="\n")
-    print(render_rates(table_rows(MATRIX.read_text(encoding="utf-8")) if MATRIX.exists() else rows))
+    print(render_rates(rows, group_map, overrides(text)))
     return 0
 
 
