@@ -32,3 +32,7 @@ This document records **ideas and engineering practices to adapt**, not code alr
 - [ ] Optional language-specific linters only after choosing a host tooling stack
 
 **Status:** design-only reuse plan; no source code or infrastructure has been imported from the referenced repositories.
+
+## BIOS behavioral specification research
+
+The [commercial-game compatibility research handbook](compat-research/README.md) documents safe reuse of emulator/HLE *ideas*, independent experiments, title-specific requirements and provenance constraints. It includes [Snatcher HLE](compat-research/snatcher-hle-case-study.md) as an external case study, not a code dependency.
