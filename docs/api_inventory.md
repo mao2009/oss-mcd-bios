@@ -1,52 +1,55 @@
-# Mega-CD BIOS API inventory (working ledger)
+# Mega-CD BIOS API inventory — provenance-first working ledger
 
-**Status: INCOMPLETE — category coverage is mapped, individual service enumeration is not yet complete.**
+**State: INCOMPLETE / UNVERIFIED.** No verified individual service count, ABI compatibility, bootable BIOS, or game compatibility is claimed.
 
-This ledger tracks **public program-facing Mega-CD/Sega CD BIOS interfaces**, not all internal ROM subroutines or memory-mapped device registers. Do not infer compatibility from a listed entry.
+This project inventories public *program-facing* BIOS services separately from dispatchers, callbacks, hardware registers, and internal routines. Source descriptions are not automatically permission to reuse code or copyrighted documentation.
 
-## Primary inventory
+## Source policy
 
-Machine-readable seed: [api_inventory.csv](api_inventory.csv).
+1. **Preferred discovery source:** [Megadev](https://github.com/drojaazu/megadev), a publicly available Mega-CD C/68k framework whose repository declares an MIT license. Audit the exact revision, file headers, origin, and third-party notices before reusing any particular code or text. The repository license is not proof that every fact or contribution has uncontested provenance.
+2. **Supporting tools:** [SGDK](https://github.com/Stephane-D/SGDK) (its library/tools declare MIT, but it primarily targets Mega Drive rather than being a complete Mega-CD BIOS API reference), and permissively licensed original test programs / independently authored hardware observations.
+3. **Behavioral cross-check only, not code donor:** [Genesis Plus GX](https://github.com/ekeeke/Genesis-Plus-GX) (core carries non-commercial restrictions and other components have separate notices). Never copy its implementation into this MIT BIOS without a distinct legal review.
+4. **Restricted provenance / quarantine:** archives of Sega documents marked CONFIDENTIAL, proprietary ROM dumps/disassembly and undocumented leaked material. Do **not** use these as the sole basis of confirmed ABI contracts, do not transplant code, and do not commit copies or transcription. Legacy entries based only on archived manuals remain unverified until independently established from appropriate sources.
+5. Verify licenses per **file and revision**. Record exact path, commit, license, origin, evidence type, and confidence. Do not interpret public GitHub availability as consent for unrestricted reuse. Legal questions require qualified review before binary distribution.
 
-The seed deliberately records only directly identified shared entry points and callbacks. **It is not a complete list of individual BIOS calls.** Blank fields mean *unknown*, not zero, and no API-count denominator is asserted.
+## Machine-readable ledger
 
-### Inventory scope / enumeration checklist
+[api_inventory.csv](api_inventory.csv) contains *legacy candidates*, not verified API services. Entries sourced only from a non-official archive have been marked `source_review_required` and deliberately contain no authoritative call selector, address or ABI. Callback/dispatcher rows are **excluded** from the service-count denominator.
 
-| Category | Reference | Individual services enumerated | ABI verified | Implementation |
-|---|---|---|---|---|
-| D — Drive mechanism | BIOS Manual §3-D, p.12 | No | No | Not implemented |
-| M — CD-DA music | §3-M, pp.13–17 | No | No | Not implemented |
-| R — CD-ROM data | §3-R, pp.18–19 | No | No | Not implemented |
-| B — BIOS other functions | §3-B, pp.20–22 | No | No | Not implemented |
-| F — Fader | §3-F, p.23 | No | No | Not implemented |
-| C — CDC decoder | §3-C, pp.24–25 | No | No | Not implemented |
-| S — Subcode | §3-S, pp.26–28 | No | No | Not implemented |
-| L — LED | §3-L, p.29 | No | No | Not implemented |
-| Backup RAM calls | §7, pp.38–45 | No | No | Not implemented |
-| Common jump table and callbacks | §5, pp.33–35 | Entry points seeded only | No | Not implemented |
+Field meanings:
 
-The _cdbios and _buram symbols are dispatch interfaces, not a claim that their subordinate functions have been inventoried. The four _usercall callbacks are **not BIOS services**, and must be excluded from the service-count denominator.
+- `kind`: service / dispatcher / callback.
+- `inventory_status`: `source_review_required`, `candidate`, `confirmed`, `disputed`.
+- `implementation_status`: not_implemented / partial / implemented.
+- `abi_status`: unverified / synthetic_tested / emulator_verified / reference_verified / hardware_verified.
 
-## Completion gates
+No meaningful coverage fraction exists until the individual-service inventory is reconciled with independently attributable primary evidence.
 
-1. Enumerate every item in the **BIOS Call List** (§2-2, pp.7–8) as its own row. Record its original name and selector, with page-level citations. Do not fabricate unknown selectors or addresses.
-2. Reconcile each against the descriptions in §3, backup RAM in §7, and jump table contracts in §5; check alternate naming, aliases, and duplicates. Track region/version scope explicitly.
-3. Cross-check additional first-hand, legally appropriate information (licensed open-source implementations and independently produced behavior tests). The Sega manual is a *behavioral reference*, not permission to copy proprietary code/assets.
-4. For each row, verify exact call convention, registers, flags, blocking semantics, errors, and CPU context, where applicable.
-5. Only when service enumeration is reconciled, freeze a per-version denominator. Report independently: documented / implemented / emulator-tested / reference-ABI-verified / hardware-tested.
+## Coverage work queue (not a claim of completeness)
 
-## Field semantics
+| Area | State | Evidence required |
+|---|---|---|
+| BIOS dispatch/call convention | NOT VERIFIED | Megadev file+revision and independent minimal caller |
+| CD drive / CDD controls | NOT ENUMERATED | public implementation or observed tests |
+| CD-DA playback | NOT ENUMERATED | caller contract and behavior observations |
+| CD-ROM / CDC reads and transfers | NOT ENUMERATED | precise service ABI + return/error tests |
+| Subcode and fader | NOT ENUMERATED | independent API references |
+| LED or ancillary services | NOT ENUMERATED | publicly attributable caller references |
+| Backup RAM services | NOT ENUMERATED | external callers and persistence tests |
+| Regional and firmware version differences | NOT VERIFIED | version-specific repeatable tests |
 
-- `kind`: `service`, `dispatcher`, or `callback`. Only `service` contributes to the service-implementation ratio.
-- `inventory_status`: `documented_symbol`, `candidate`, `confirmed`, or `disputed`.
-- `implementation_status`: `not_implemented`, `partial`, or `implemented`.
-- `abi_status`: `unverified`, `synthetic_tested`, `emulator_verified`, `reference_verified`, or `hardware_verified`.
-- Avoid conflating test success with verified compatibility.
+These are investigation categories only. They are not derived from a claimed exhaustive proprietary manual count.
 
-## References
+## Gates to promote a candidate to CONFIRMED
 
-- [Mega-CD BIOS Manual table of contents](https://www.megadrive.org/elbarto/megacd/Official%20Sega%20CD%20Manual/segacd_toc.html), especially §2-2 (pp.7–8), §3, §5 and §7.
-- [Technical Bulletins](https://segaretro.org/images/2/2e/Sega-CD_Technical_Bulletins.pdf): validate compatibility variations and call conventions as separate evidence.
-- [Project roadmap](roadmap.md): M3 BIOS compatibility is future work.
+1. Locate an independently published, legally suitable caller, header, or original test; document revision, exact file, license and scope. Where provenance is uncertain, retain candidate status.
+2. Separate an API service from a dispatcher or callback; capture exact entry mechanism and selectors **only with evidence**.
+3. Independently exercise the contract in a bounded emulator test (document versions and hashes); record inputs, outputs, error behavior and CPU context.
+4. Cross-check with a second independent source or reference behavior where legally appropriate. Distinguish documented, implementation-tested, original-BIOS-ABI-verified and physical-hardware-verified.
+5. Record regional/firmware differences; freeze denominators only after explicit coverage review.
 
-**No proprietary source code, disassembly, extracted ROM data, or copyright-protected assets are included in this ledger.**
+## Historical provenance note
+
+The original ledger used an unofficial online mirror of a purported Sega development manual, some versions marked CONFIDENTIAL, for its category taxonomy and six placeholder symbols. Those assertions are **not** treated as confirmed. References to that mirror were removed from current operational inventory, without rewriting Git history. This file documents that provenance limitation transparently.
+
+This is engineering provenance hygiene, **not a legal opinion or guarantee**.
